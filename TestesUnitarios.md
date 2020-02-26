@@ -387,7 +387,6 @@ Os testes do Espresso rodam em dispositivos reais e são testes instrumentados p
 <img src="https://codelabs.developers.google.com/codelabs/advanced-android-kotlin-training-testing-test-doubles/img/aed9ab560d3977b0.png" alt="img" style="zoom: 67%;" />
 
 
-
 #### Estrutura do código de testes Espresso
 
 ```kotlin
@@ -415,4 +414,3 @@ O Mockito é um framework para fazer test doubles. Enquanto a palavra mock é us
     androidTestImplementation "androidx.test.espresso:espresso-contrib:$espressoVersion"
 
 ```
-
