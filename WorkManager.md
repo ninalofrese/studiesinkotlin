@@ -6,7 +6,7 @@ Você indica constraints para que ele realize tarefas quando o aparelho está ca
 
 O uso do WorkManager é importante inclusive para deixar mais eficiente o consumo da bateria.
 
-![work-manager](T:\Meu Drive\Estudos\work-manager.png)
+![work-manager](work-manager.png)
 
 ## Bateria eficiente
 
