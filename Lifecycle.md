@@ -1,4 +1,4 @@
-![activity-lifecycle](D:\Studies in Kotlin\activity-lifecycle.png)
+![activity-lifecycle](activity-lifecycle.png)
 
 # General Definitions
 
@@ -55,7 +55,6 @@ These are the same for both the Fragment Lifecycle and the Activity Lifecycle.
 **onDestroy:** This is the mirror method to onCreate. It is called once when the activity is fully destroyed. This happens when you navigate back out of the activity (as in press the back button), or manually call finish(). It is your last chance to clean up resources associated with the activity. Here you should:
 
 - Tear down or release any resources that are related to the activity and are not automatically released for you. Forgetting to do this could cause a memory leak! Logic that refers to the activity or attempts to update the UI after the activity has been destroyed could crash the app!
-
 
 
 # Summary of the Fragment Lifecycle
