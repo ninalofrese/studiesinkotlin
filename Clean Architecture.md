@@ -14,7 +14,7 @@
 - Fácil de entender e manter
 - Testar é mais fácil
 
-## ![clean-architecture](D:\Studies in Kotlin\clean-architecture.png)
+![clean-architecture](clean-architecture.png)
 
 
 https://github.com/bufferapp/android-clean-architecture-boilerplate
@@ -51,7 +51,7 @@ A responsabilidade dessa camada é lidar com a apresentação da User Interface,
 
 Essa imagem é a que mostra a arquitetura mais comumente:
 
-![clean-architecture-2](T:\Meu Drive\Estudos\clean-architecture-2.png)
+![clean-architecture-2](clean-architecture-2.png)
 
 As setas com ponta preta indicam dependência.
 
@@ -104,7 +104,7 @@ Ao invés de trabalhar com um app monolítico, é melhor usar a modularização,
 
 O Clean Architecture não é um modelo de arquitetura para ser simplesmente copiado. Cada projeto e programador terá uma maneira que considera melhor de aplicar o Clean Architecture.
 
-![clean-architecture-structure](T:\Meu Drive\Estudos\clean-architecture-structure.PNG)
+![clean-architecture-structure](clean-architecture-structure.PNG)
 
 ***
 
