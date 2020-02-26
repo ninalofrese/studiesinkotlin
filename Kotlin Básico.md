@@ -260,7 +260,7 @@ Situações para escolher cada scope:
 
     
 
-![scopes-fluxogram](D:\Studies in Kotlin\scopes-fluxogram.png)
+![scopes-fluxogram](scopes-fluxogram.png)
 
 ### Apply (retorna o objeto - THIS) - "aplique as seguintes orientações ao objeto"
 
@@ -405,7 +405,7 @@ for(i in 0..100 step 7) println(i.toString() + " - ")
 
 https://kotlinlang.org/docs/reference/collections-overview.html
 
-![Collections in Kotlin](D:\Studies in Kotlin\collections-diagram.png)
+![Collections in Kotlin](collections-diagram.png)
 
 Alguns exemplos de listas:
 
