@@ -6,7 +6,7 @@ O Data Binding conecta o layout a uma activity/ fragment  e gera o objeto Bindin
 
 ## Conexão Simples
 
-![basic-data-binding](D:\Studies in Kotlin\basic-data-binding.png)
+![basic-data-binding](basic-data-binding.png)
 
 ### Adicionar dependência
 
@@ -64,7 +64,7 @@ private fun addNickname(view: View) {
 
 ## Conexão com dados (data class)
 
-![data-class-data-binding](D:\Studies in Kotlin\data-class-data-binding.png)
+![data-class-data-binding](data-class-data-binding.png)
 
 Primeiro, é preciso criar uma data class, se já não tem ela criada. O código dela é basicamente o mesmo que o sugerido na imagem acima, para o exemplo. No XML precisa adicionar, logo abaixo da tag de abertura de `<layout>`, o bloco abaixo, conectando a Activity com o layout:
 
@@ -78,7 +78,7 @@ Primeiro, é preciso criar uma data class, se já não tem ela criada. O código
 
 Depois, os campos precisam referenciar as propriedades da classe modelo. É na propriedade `android:text` que isso acontece neste exemplo.
 
-![data-class -2-data-binding](D:\Studies in Kotlin\data-class -2-data-binding.png)
+![data-class -2-data-binding](data-class-2-data-binding.png)
 
 Ok. Conectado, mas como eu vou setar o texto propriamente dito? Como normalmente acontece, cria uma instância do data class, e atribui a ele o valor do EditText.
 
