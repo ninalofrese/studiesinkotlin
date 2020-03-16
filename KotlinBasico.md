@@ -757,6 +757,28 @@ println(d1.equals(d2)) //false
 println(d3.equals(d2)) //true
 ```
 
+### Anônimas
+
+Classes anônimas no Kotlin são criadas usando `object: NomeDaClasse`, criando um novo objeto que implementará a classe.
+
+```kotlin
+fun refreshTitle() {
+   _spinner.value = true
+   repository.refreshTitleWithCallbacks(object: TitleRefreshCallback {
+       override fun onCompleted() {
+           _spinner.postValue(false)
+       }
+
+       override fun onError(cause: Throwable) {
+           _snackBar.postValue(cause.message)
+           _spinner.postValue(false)
+       }
+   })
+}
+```
+
+
+
 ## Constantes
 
 `const val`é a maneira de criar constantes no Kotlin. A diferença entre `const val` e `val` é que o primeiro é sempre determinado no momento da compilação, enquanto com `val` , o valor pode ser determinado durante a execução do programa.
