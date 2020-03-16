@@ -275,11 +275,13 @@ Considerando que agora `doWork()` é uma função suspensa, esse código não va
 
 # Testes
 
-https://codelabs.developers.google.com/codelabs/kotlin-coroutines/#9
+[Exemplos de testes Codelabs](https://github.com/googlecodelabs/kotlin-coroutines/tree/master/coroutines-codelab/finished_code/src/test/java/com/example/android/kotlincoroutines/main)
 
 ## RunBlockingTest
 
 A função [runBlockingTest](https://kotlin.github.io/kotlinx.coroutines/kotlinx-coroutines-test/kotlinx.coroutines.test/run-blocking-test.html) sempre vai bloquear quem chama, assim como uma função normal. O coroutine vai rodar sincronizadamente na mesma thread. Você deve evitar **runBlocking** e **runBlockingTest** no código e preferir usar o launch, que vai retornar imediatamente. `runBlockingTest` deve ser usado apenas em testes enquanto executa coroutines na forma de testes controlados, enquanto o `runBlocking` pode ser usado para prover interfaces bloqueantes para as coroutines.
+
+[Mais detalhes sobre runBlockingTest no contexto do Codelabs](https://codelabs.developers.google.com/codelabs/kotlin-coroutines/#9)
 
 ## WorkManager
 
@@ -319,7 +321,7 @@ class RefreshMainDataWorkTest {
 }
 ```
 
-
+[Código completo do teste do Worker](https://github.com/googlecodelabs/kotlin-coroutines/blob/master/coroutines-codelab/finished_code/src/androidTest/java/com/example/android/kotlincoroutines/main/RefreshMainDataWorkTest.kt)
 
 # Links
 
@@ -327,3 +329,4 @@ class RefreshMainDataWorkTest {
 - [Codelabs de coroutines](https://codelabs.developers.google.com/codelabs/kotlin-coroutines/#0)
 - [Codelabs de coroutines avançado com Kotlin Flow e LiveData](https://codelabs.developers.google.com/codelabs/advanced-kotlin-coroutines/index.html#0)
 - [Melhorar o desempenho do app com coroutines](https://developer.android.com/kotlin/coroutines)
+- [Exemplos de testes Codelabs](https://github.com/googlecodelabs/kotlin-coroutines/tree/master/coroutines-codelab/finished_code/src/test/java/com/example/android/kotlincoroutines/main)
