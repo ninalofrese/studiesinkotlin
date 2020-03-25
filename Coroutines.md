@@ -323,6 +323,12 @@ class RefreshMainDataWorkTest {
 
 [Código completo do teste do Worker](https://github.com/googlecodelabs/kotlin-coroutines/blob/master/coroutines-codelab/finished_code/src/androidTest/java/com/example/android/kotlincoroutines/main/RefreshMainDataWorkTest.kt)
 
+# Palestra do Nelson Glauber
+
+Job: representa uma tarefa ou conjunto de tarefas em execução. A função launch() retorna um job. O job tem um ciclo de vida: novo, ativo, cancelado e completo.
+
+Flow é uma abstração de cold stream, que nada é executado até que o consumidor se registre no fluxo. O async é assíncrono, mas o Flow é reativo, como RxJava.
+
 # Links
 
 - [Utilizando coroutines no Android](https://medium.com/android-dev-br/utilizando-kotlin-coroutines-no-android-c73fcda71e27)
