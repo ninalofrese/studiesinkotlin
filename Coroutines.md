@@ -222,7 +222,127 @@ Dá para criar high-order functions que usem coroutines também. É possível cr
     }
 ```
 
+### LiveData
 
+O LiveData é suportado pelo coroutines, o que significa que é possível fazer ações assíncronas, como recuperar as preferências de um usuário e exibir na UI. A função do builder `liveData{}` pode chamar uma suspend function, exibindo o resultado como um objeto LiveData.
+
+```kotlin
+val plants: LiveData<List<Plant>> = liveData<List<Plant>> {
+   val plantsLiveData = plantDao.getPlants()
+   val customSortOrder = plantsListSortOrderCache.getOrAwait()
+   emitSource(plantsLiveData.map {
+       plantList -> plantList.applySort(customSortOrder) 
+   })
+}
+
+fun getPlantsWithGrowZone(growZone: GrowZone) = liveData {
+    val plantsGrowZoneLiveData = plantDao.getPlantsWithGrowZoneNumber(growZone.number)
+    val customSortOrder = plantsListSortOrderCache.getOrAwait()
+    emitSource(plantsGrowZoneLiveData.map { plantList -> 
+        plantList.applySort(customSortOrder)
+    })
+}
+
+class MyViewModel: ViewModel() {
+        private val userId: LiveData<String> = MutableLiveData()
+        val user = userId.switchMap { id ->
+            liveData(context = viewModelScope.coroutineContext + Dispatchers.IO) {
+                emit(database.loadUserById(id))
+            }
+        }
+    }
+```
+
+Esse bloco `liveData{}` permite que o a execução do coroutine comece quando o bloco é observado, e é cancelado quando o coroutine termina com sucesso ou se retorna com falha. Se qualquer uma das suspend functions dentro do bloco falhar, todo o bloco é cancelado e não reiniciado, o que acaba evitando leaks.
+
+> Para emitir valores múltiplos de um LiveData, chame o método `emitSource()` quando quiser emitir um novo valor. Perceba que cada chamada para `emitSource()` remove o source anterior.
+
+```kotlin
+// Um LiveData que recupera um objeto User baseado no userId e atualiza a cada 30 segundos
+// enquanto for observado
+val userId : LiveData<String> = ...
+val user = userId.switchMap { id ->
+    liveData {
+      while(true) {
+        // perceba que usar `while(true)` é OK porque o delay abaixo vai contribuir com o
+        // cancelamento se o LiveData não for mais observado ativamente (pelo vínculo com Lifecycle)
+        val data = api.fetch(id) // tratamento de erros ignorado para manter isso breve
+        emit(data)
+        delay(30_000)
+      }
+    }
+}
+```
+
+### Flow
+
+Um Flow é uma versão assíncrona de Sequence, um tipo de coleção cujos valores são produzidos de forma lazy. Assim como uma sequência, um flow produz cada valor sob demanda quando ele é requisitado, e os flows podem conter um número infinito de valores.
+
+A diferença entre Flow e Sequence, é que o Flow conta com o `async` e inclui suporte total ao coroutines. Isso significa que é possível construir, transformar e consumir Flows usando coroutines. Dá também para controlar a concorrência, o que significa coordenar a execução de vários coroutines com Flow.
+
+> `Flow` produz cada valor por vez (ao invés de todos de uma vez) que pode gerar valores de operações async como requisições de network, chamadas de banco de dados ou qualquer outro código async. Tem suporte de coroutines em sua API, por isso dá para transformar um flow usando coroutines também.
+
+É essa funcionalidade do coroutines que mais se aproxima com a potência do RxJava. A lógica pode ser transformada por operadores funcionais como map, flatMapLatest, combine, etc. O Flow também suporta suspending functions na maioria dos operadores. Assim é possivel fazer tarefas sequenciais assíncronas dentro de um operador como o `map`. 
+
+#### Como o Flow executa
+
+**A execução é alternada entre o builder e o collect**.
+
+```kotlin
+fun makeFlow() = flow {
+   println("sending first value")
+  // 1 cada vez que o builder chama emit(), ele é suspenso até que o elemento seja completamente processado
+   emit(1)
+   println("first value collected, sending another value")
+  // 2 
+   emit(2)
+   println("second value collected, sending a third value")
+   emit(3)
+   println("done")
+}
+
+scope.launch {
+  // 3 quando outro valor é solicitado do flow (2), ele retoma de onde parou e chama o emit de novo
+   makeFlow().collect { value ->
+       println("got $value")
+   }
+  // 4 quando fluxo do builder completa, o Flow é cancelado e o collect é retomada, a coroutina imprime a linha abaixo
+   println("flow is completed")
+}
+```
+
+O operador terminal `collect` é bem importante. O Flow usa operadores suspensos como `collect` ao invés de expor interfaces `Iterators` porque assim sempre sabe quando o flow está sendo ativamente consumidor. Além disso, sabe quando o caller não pode pedir mais valores, e assim limpa os recursos.
+
+> `Flow` foi construído do zero usando coroutines. Usando o mecanismo de `suspend` e `resume`, elas podem sincronizar a execução do producer (`flow`) com o consumer(`collect`). Além disso, o Flow tem o conceito de **backpressure** implementado (como o Flowable do RxJava), que suspende a coroutine.
+
+#### Quando o Flow executa
+
+No exemplo acima, o Flow começa a executar quando o operador `collect` executa. Só criar um builder Flow não faz com que nenhum trabalho execute. Ele precisa de um operador terminal, como o collect, ou outros, como `toList`, `first` e  `single`. Por exemplo, o toList vai coletar o flow e adicionar os valores em uma lista.
+
+Por padrão, o Flow será executado:
+
+- Toda vez que um operador terminal é aplicado sem a memória da última execução
+- Até que o operador terminal seja cancelado
+- Quando o último valor for inteiramente processado, e outro valor ser requisitado
+
+> Essas regras são o comportamento padrão do Flow e é possível fazer como que ele tenha memória, ou seja, não recomece para cada operador terminal, e execute independentemente de ser coletado ou transformado.
+
+Por conta dessas regras, um Flow pode ser usado em estruturas simultâneas, e é seguro criar long-running coroutines com Flow. Não tem chance de um Flow vazar recursos, uma vez que eles são sempre limpos usando as regras de cancelamento de coroutines quando quem chama é cancelado.
+
+```kotlin
+scope.launch {
+  // 2 com o take(2), o flow só produzirá 2 valores e não vai retomar o lambda de novo depois da segunda chamada do emit(), então a linha "second value collected..." não vai ser printada
+   val repeatableFlow = makeFlow().take(2)  // we only care about the first two elements
+   println("first collection")
+  // 1 o lambda do Flow começa do início cada vez que collect é chamado
+   repeatableFlow.collect()
+   println("collecting again")
+   repeatableFlow.collect()
+   println("second collection completed")
+}
+```
+
+> Por padrão, o Flow vai recomeçar do topo toda vez que um operador terminal for aplicado. Isso é importante se o `Flow` for desempenhar um trabalho mais pesado, como fazer uma chamada de network
 
 ## Suporte para Room e Retrofit
 
