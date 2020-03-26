@@ -12,7 +12,7 @@ dependencies {
 
 Se está usando RxJava, pode integrar com o coroutines usando a [kotlin-coroutines-rx](https://github.com/Kotlin/kotlinx.coroutines/tree/master/reactive) library.
 
-### O padrão de callback
+## O padrão de callback
 
 Um dos padrões para executar tarefas longas são os callbacks. Usando callbacks, é possível iniciar long-running tasks em uma thread de background. Quando a tarefa terminar, o callback é chamado para informar o resultado na main thread.
 
@@ -31,7 +31,7 @@ fun makeNetworkRequest() {
 
 Por este código ter a anotação @UiThread, deve rodar rápido o suficiente para executar na main thread. Isso significa que precisa retornar um valor rapidamente, assim a próxima tela não é atrasada. Contudo, já que `slowFetch` vai levar segundos ou até minutos para completar, a main thread não pode ficar esperando pelo resultado. O callback `show(result)` permite que `slowFetch` rode em uma thread de background e retorne quando estiver pronto.
 
-### Usando coroutines para remover callbacks
+## Usando coroutines para remover callbacks
 
 Callback é um padrão bem legal, mas tem algumas desvantagens. Código que usa muitos callbacks podem ficar difíceis de ler e mais difíceis ainda de raciocinar. Além disso, callbacks não permitem o uso de algumas ferramentas da linguagem, como as exceções.
 
@@ -68,21 +68,23 @@ suspend fun anotherFetch(): AnotherResult { ... }
 >
 > O Kotlin tem um método `Deferred.await()` que é usado para aguardar o resultado de um coroutine iniciado com o builder `async`
 
-## Conceitos
+# Conceitos
 
-### Suspending functions
+
+
+## Suspending functions
 
 É o jeito que o Kotlin marca as funções disponíveis no coroutines. Quando uma coroutine chama uma função marcada como suspensa, ao invés de bloquear até que ela retorne como geralmente uma função normal é chamada, ela suspende a execução até que o resultado esteja pronto e então retoma de onde parou com o resultado. Enquanto está suspensa e esperando pelo resultado, ela desbloqueia a thread que está executando para que outras funções ou coroutines possam executar.
 
 > A keyword `suspend` não especifica em qual thread o código vai rodar. Funções suspensas podem rodar tanto em background threads como na main thread.
 
-### Scopes
+## Scopes
 
 No Kotlin, todas as coroutines rodam dentro de um **CoroutineScope**. Um escopo controla o tempo de vida da coroutine durante o seu trabalho. Quando você cancela o trabalho de um escopo, isso cancela todas as coroutines iniciadas neste escopo. No Android, você pode usar um escopo para cancelar todos os coroutines quando, por exemplo, um usuário sai de uma Activity ou um Fragment. Escopos também permitem que você especifique um dispatcher. Um dispatcher controla qual thread vai rodar um coroutine.
 
 Para os coroutines iniciados pela UI, é correto na maioria das vezes iniciá-las no `Dispatchers.Main`, que é a main thread no Android. Uma coroutine iniciada nesta thread não vai bloquear a main thread enquanto estiver suspensa. Como um coroutine de um ViewModel quase sempre atualiza a UI na main thread, iniciar coroutines na main thread geralmente economiza a troca de threads desnecessárias. Um coroutine inidicado na main thread pode trocar de dispatchers a qualquer momento depois de iniciada. Por exemplo, pode usar um outro dispatcher para parsear um resultado JSON fora da main thread.
 
-> **Coroutines oferece main-safety**
+> **Coroutines oferecem main-safety**
 >
 > Pela facilidade que os coroutines têm de mudar de thread a qualquer hora e passar os resultados de volta para thread original, é uma boa ideia iniciar coroutines relacionadas a UI na main thread.
 >
@@ -110,9 +112,15 @@ fun refreshTitle() {
     }
 ```
 
-Além do CoroutineScope, quando se usa o lifecycle-viewmodel-ktx library, também é possível usar o **viewModelScope**, configurado especialmente para ViewModels e que é adicionada como uma extension function da classe ViewModel. Esse escopo é vinculado ao `Dispatchers.Main` e vai ser cancelado automaticamente quando o ViewModel for limpo. Existe também o 
+### ViewModelScope
 
-### Launch (paralelo - não usa resultados)
+Além do CoroutineScope, quando se usa o lifecycle-viewmodel-ktx library, também é possível usar o **viewModelScope**, configurado especialmente para ViewModels e que é adicionada como uma extension function da classe ViewModel. Esse escopo é vinculado ao `Dispatchers.Main` e vai ser cancelado automaticamente quando o ViewModel for limpo.
+
+### GlobalScope
+
+Existe também o **globalScope**. É melhor [evitar](https://medium.com/@elizarov/the-reason-to-avoid-globalscope-835337445abc).
+
+## Launch (paralelo - não usa resultados)
 
 Inicia uma coroutine no escopo designado. Isso significa que quando o job que foi passado para o escopo for cancelado, todas as coroutines neste job/ escopo serão canceladas.
 
@@ -135,19 +143,23 @@ Inicia uma coroutine no escopo designado. Isso significa que quando o job que fo
 
 Deve ser usado se você não precisa do resultado do método chamado com launch, por exemplo, se enviou apenas um update ou mudar uma cor ou rastreia uma informação sem precisar retornar. Ela não bloqueia a thread pai.
 
-### WithContext (sequência)
+## WithContext (sequência)
 
 Chama o bloco suspenso especificado com o contexto que for designado, suspende até completar e retorna o resultado. Uma coisa importante é que `withContext()` é uma chamada suspensa, então ela não vai para a próxima linha até que esteja completada. E recomendável quando precisa usar a resposta do método chamado, `withContext()` vai esperar por este resultado e não vai bloquear a main thread.
 
-### Async (paralelo - usa resultado)
+## Async (paralelo - usa resultado)
 
 Deve ser utilizada quando precisar rodar duas ou mais chamadas de network em paralelo, mas precisa aguardar as respostas antes de computar o resultado. Ela bloqueia a thread pai. Um detalhe é que se você usa async, mas não espera um resultado, ele vai funcionar como o launch.
 
-### Exceptions
+## Job
+
+Representa uma tarefa ou conjunto de tarefas em execução. A função `launch()` retorna um job. O job tem um ciclo de vida: novo, ativo, cancelado e completo.
+
+## Exceptions
 
 Exceções em funções suspensas funcionam como erros em funções normais. Se você lança um erro em uma função suspensa, ela vai ser jogada para quem chamou. Então mesmo que elas executem de um jeito diferente, você pode usar blocos `try/ catch` normais para lidar com eles. Isso é útil porque deixa você usar o suporte existente da linguagem para lidar com o erro ao invés de ter que tratar o erro a cada callback. 
 
-### Blocking calls
+## Blocking calls
 
 É inevitável rodar tudo em funções suspensas, sem bloquear thread nenhuma. Um exemplo é este abaixo, que muda a thread para a IO, e chama alguns métodos que bloqueiam a thread, como o `execute()` e o `insertTitle`. O coroutine que chama isso, possivelmente rodando na Dispatchers.Main, vai ser suspensa até que o lambda do `withContext` for completado.
 
@@ -179,7 +191,7 @@ O código acima tem 2 importantes diferenças quando comparado com os callbacks:
 1. O `withContext()` retorna seu resultado para o Dispatcher que o chamou, neste caso o `Dispatchers.Main`. A versão com callback retornava para a background thread.
 2. Quem chama não precisa passar um callback para esta função. Ela pode confiar na suspensão e retomada para ter um resultado ou erro.
 
-### Cancelamento/ interrupção
+## Cancelamento/ interrupção
 
 Cancelamento de coroutine é [cooperativo](https://kotlinlang.org/docs/reference/coroutines/cancellation-and-timeouts.html). Isso significa que o código precisa checar pelo cancelamento explicitamente, o que acontece geralmente quando você chama as funções de kotlinx-coroutines. Por causa do bloco `withContext` só fazer chamadas do tipo blocking, ela não vai ser cancelada até que haja um retorno de `withContext`.
 
@@ -187,7 +199,7 @@ Para resolver isso, você pode chamar `yield` regularmente para dar a outras cor
 
 Você também pode criar cancelamentos explícitos criando interfaces de low-level de coroutines.
 
-### High-order functions
+## High-order functions
 
 Dá para criar high-order functions que usem coroutines também. É possível criar uma abstração do código exemplificado, que basicamente tem um boilerplate que pode ser usado em outras ocasiões, tipo mostrar um spinner e erros. A solução é criar uma high-order function que vai abstrair esse boilerplate e considera o diferencial em um argumento `block()`, que é um lambda suspenso. Um lambda suspenso permite que sejam chamadas funções suspensas. Um exemplo nativo do Kotlin é com os builders do coroutines `launch` e `runBlocking`
 
@@ -222,7 +234,7 @@ Dá para criar high-order functions que usem coroutines também. É possível cr
     }
 ```
 
-### LiveData
+## LiveData
 
 O LiveData é suportado pelo coroutines, o que significa que é possível fazer ações assíncronas, como recuperar as preferências de um usuário e exibir na UI. A função do builder `liveData{}` pode chamar uma suspend function, exibindo o resultado como um objeto LiveData.
 
@@ -274,9 +286,9 @@ val user = userId.switchMap { id ->
 }
 ```
 
-### Flow
+## Flow
 
-Um Flow é uma versão assíncrona de Sequence, um tipo de coleção cujos valores são produzidos de forma lazy. Assim como uma sequência, um flow produz cada valor sob demanda quando ele é requisitado, e os flows podem conter um número infinito de valores.
+Um Flow é uma versão assíncrona de Sequence, um tipo de coleção cujos valores são produzidos de forma lazy. Assim como uma sequência, um flow produz cada valor sob demanda quando ele é requisitado, e os flows podem conter um número infinito de valores. Flow é uma abstração de *cold stream*, que nada é executado até que o consumidor se registre no fluxo. O `async` é assíncrono, mas o Flow é reativo, como RxJava.
 
 A diferença entre Flow e Sequence, é que o Flow conta com o `async` e inclui suporte total ao coroutines. Isso significa que é possível construir, transformar e consumir Flows usando coroutines. Dá também para controlar a concorrência, o que significa coordenar a execução de vários coroutines com Flow.
 
@@ -284,7 +296,7 @@ A diferença entre Flow e Sequence, é que o Flow conta com o `async` e inclui s
 
 É essa funcionalidade do coroutines que mais se aproxima com a potência do RxJava. A lógica pode ser transformada por operadores funcionais como map, flatMapLatest, combine, etc. O Flow também suporta suspending functions na maioria dos operadores. Assim é possivel fazer tarefas sequenciais assíncronas dentro de um operador como o `map`. 
 
-#### Como o Flow executa
+### Como o Flow executa
 
 **A execução é alternada entre o builder e o collect**.
 
@@ -315,7 +327,7 @@ O operador terminal `collect` é bem importante. O Flow usa operadores suspensos
 
 > `Flow` foi construído do zero usando coroutines. Usando o mecanismo de `suspend` e `resume`, elas podem sincronizar a execução do producer (`flow`) com o consumer(`collect`). Além disso, o Flow tem o conceito de **backpressure** implementado (como o Flowable do RxJava), que suspende a coroutine.
 
-#### Quando o Flow executa
+### Quando o Flow executa
 
 No exemplo acima, o Flow começa a executar quando o operador `collect` executa. Só criar um builder Flow não faz com que nenhum trabalho execute. Ele precisa de um operador terminal, como o collect, ou outros, como `toList`, `first` e  `single`. Por exemplo, o toList vai coletar o flow e adicionar os valores em uma lista.
 
@@ -344,11 +356,11 @@ scope.launch {
 
 > Por padrão, o Flow vai recomeçar do topo toda vez que um operador terminal for aplicado. Isso é importante se o `Flow` for desempenhar um trabalho mais pesado, como fazer uma chamada de network
 
-## Suporte para Room e Retrofit
+# Suporte para Room e Retrofit
 
 > Você não precisa usar `withContext()` para chamar funções suspensas **main-safe**. Por convenção, você deve garantir que as funções suspensas escritas no app são main-safe. Desta forma é seguro chamá-las de qualquer dispatcher, até `Dispatchers.Main`. Este é o caso depois do suporte para Room e Retrofit. Essas funções já são main-safe, não precisa usar novamente o `mainContext()`.
 
-### Room
+## Room
 
 ```kotlin
 // add the suspend modifier to the existing insertTitle
@@ -359,7 +371,7 @@ suspend fun insertTitle(title: Title)
 
 Quando você transforma o método em suspend, Room vai fazer com que a query seja main-safe e execute em uma background thread (IO) automaticamente. Contudo, isso significa que você só pode chamar essa query de dentro de um coroutine.
 
-### Retrofit
+## Retrofit
 
 ```kotlin
 // add suspend modifier to the existing fetchNextTitle
@@ -443,12 +455,6 @@ class RefreshMainDataWorkTest {
 
 [Código completo do teste do Worker](https://github.com/googlecodelabs/kotlin-coroutines/blob/master/coroutines-codelab/finished_code/src/androidTest/java/com/example/android/kotlincoroutines/main/RefreshMainDataWorkTest.kt)
 
-# Palestra do Nelson Glauber
-
-Job: representa uma tarefa ou conjunto de tarefas em execução. A função launch() retorna um job. O job tem um ciclo de vida: novo, ativo, cancelado e completo.
-
-Flow é uma abstração de cold stream, que nada é executado até que o consumidor se registre no fluxo. O async é assíncrono, mas o Flow é reativo, como RxJava.
-
 # Links
 
 - [Utilizando coroutines no Android](https://medium.com/android-dev-br/utilizando-kotlin-coroutines-no-android-c73fcda71e27)
@@ -456,3 +462,4 @@ Flow é uma abstração de cold stream, que nada é executado até que o consumi
 - [Codelabs de coroutines avançado com Kotlin Flow e LiveData](https://codelabs.developers.google.com/codelabs/advanced-kotlin-coroutines/index.html#0)
 - [Melhorar o desempenho do app com coroutines](https://developer.android.com/kotlin/coroutines)
 - [Exemplos de testes Codelabs](https://github.com/googlecodelabs/kotlin-coroutines/tree/master/coroutines-codelab/finished_code/src/test/java/com/example/android/kotlincoroutines/main)
+- [Motivos para evitar o GlobalScope](https://medium.com/@elizarov/the-reason-to-avoid-globalscope-835337445abc)
