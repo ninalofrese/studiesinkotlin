@@ -26,12 +26,16 @@ São sistemas com mais de 1 CPU. Na prática, o processador possui várias CPUS 
 
 Esses cores não são totalmente independentes um do outro, mas se comunicam de forma muito complexa para que todos os processos fiquem coerentes e sincronizado. O sistema de multiprocessamento permite o paralelismo.
 
+
+
 ## Simultaneidade vs. Paralelismo
 
 - Simultaneidade é quando múltiplas tarefas **parecem** progredir durante o mesmo período de tempo.
 - Paralelismo é quando múltiplas tarefas **progridem** ao mesmo tempo instantâneo.
 
 Todos os sistemas que permitem paralelismo também permitem simultaneidade, mas nem todos os sistemas que permitem simultaneidade permitem paralelismo. Por exemplo, sistemas com apenas 1 CPU geralmente suportam apenas multitasking. Desenvolvedores Android não precisam pensar sobre multiprocessing e paralelismo, mas precisam se concentrar na simultaneidade. Uma dica é assistir [esse vídeo do Rob Pike falando que Simultaneidade não é Paralelismo](https://vimeo.com/49718712). 
+
+
 
 ## Processos no Android e Threads
 
@@ -49,9 +53,13 @@ Threads compartilham o ambiente de execução do processo pai, por isso ela pode
 
 ![](threads-process-android.png)
 
+
+
 # Multithreading
 
 É a fragmentação da lógica da aplicação em tarefas múltiplas e simultâneas.
+
+
 
 ## Classe java.lang.Thread 
 
@@ -63,6 +71,8 @@ Há duas maneiras de instanciar novas threads:
 2. Essa forma envolve o objeto `runnable` , que são basicamente containers para código, mas que não vão especificam como esse código será executado e em qual thread. Depois, instancia uma `Thread(runnable)` e passa o runnable dentro. Esse método usa **composição**, que acaba sendo melhor de ser utilizado.
 
 Instanciar esse objeto é diferente de começar uma nova thread. Para que ela de fato rode, ela precisa de um `thread.start();`
+
+
 
 ## Garbage Collector
 
@@ -82,6 +92,8 @@ Mas e se caso você tenha dois objetos, um apontando para o outro? Se não exist
 
 Todos os objetos no seu app devem ser coletados pelo GC eventualmente, exceto objetos que você explicitamente quer usar por todo o ciclo de vida da aplicação.
 
+
+
 ## Memory Leaks
 
 É quando você tem um objeto que não será usado pela aplicação de novo, mas não pode ser limpa pela GC, e aí ele fica consumindo a memória para sempre. É o caso dos **roots**, objetos que são considerados alcançáveis, mas que não são limpos pelo GC. Basicamente, roots são objetos que guardam a memória de outros objetos.
@@ -91,6 +103,8 @@ Alguns roots importantes em uma aplicação Android:
 1. Objetos referenciados de campos estáticos. Ex: `private static List lista = new ArrayList()`
 2. Instâncias da classe Application (não são roots, mas se comportam como se fossem)
 3. Live threads (threads ativas)
+
+
 
 ## Ciclo de vida das threads
 
@@ -110,6 +124,8 @@ Do momento que uma thread tem o `start()` até o retorno do método `run()`, tod
 Exemplo da abordagem 4, interrompendo com OkHttp.
 
 <img src="threads-terminate-on-interruption-example.png" alt="threads-terminate-on-interruption-example" style="zoom:50%;" />
+
+
 
 ## UI Thread
 
@@ -141,6 +157,8 @@ Alertas que você está extrapolando a responsividade da UI thread:
 > Um dos pilares fundamentais de qualidade de apps Android é ter 0 frames skipped.
 
 É por isso que **toda operação que consome tempo deve ser descarregada para background threads**.
+
+
 
 ### Conceitos de Handler e Looper
 
@@ -176,9 +194,13 @@ private void countIterations() {
     }
 ```
 
+
+
 ## Background thread
 
 É basicamente qualquer outra thread que não a UI  thread. Uma regra importante é que qualquer coisa que lide com views, com UI, deve ser feita somente na UI thread, também pelo motivo é que ela cria as views, portanto, deve lidar com tudo que é pertinente a essas views.
+
+
 
 # Desafios do multithreading
 
@@ -191,6 +213,8 @@ Quando digo que é preciso garantir a thread-safety significa que o desenvolvedo
 - Visibilidade
 - Atomicidade
 - Acontece antes
+
+
 
 ## 1 Visibilidade
 
@@ -359,17 +383,23 @@ Uma operação do tipo CAS trabalha em 3 operações:
 
 Em ambos os casos, o valor existente em M é retornado. Isso combina 3 passos - pegar o valor, comparar e atualizar - em apenas uma operação singular a nível de máquina. Quando múltiplas threads tentam fazer o update (atualização) no mesmo valor por meio do CAS, uma delas vence e consegue atualizar o valor. Contudo, as outras threads não são suspensas, e ao invés disso, elas são simplesmente informadas de que não conseguiram dar update no valor. Isso traz a consequência de que o app fica mais complexo, porque precisa considerar este cenário que o CAS não deu certo nas threads.
 
+
+
 ## Variáveis voláteis
 
 É uma keyword especialmente usada em variáveis e significa que qualquer valor que for nessa variável vai para a memória principal. Este valor nunca será cacheado. **Isso resolve o problema de visibilidade, mas não a atomicidade**, além de ser meio difícil de perceber que essa limitação foi resolvida, pois a variável volátil é só percebida quando declarada, não nas chamadas. 
 
 A questão da memória é um outro ponto que pode não ser tão usual em todas as situações, porque ela vai direto para a memória principal, ignorando todos os caches e atualizando esses dados sempre que carregados.
 
+
+
 ## Atomic Classes
 
 O Java tem essas classes que fazem um wrap das variáveis primitivas com o objetivo de serem inseridas de forma segura em um contexto de multi-thread. Elas são chamadas de atomic variables porque provêm algumas operações que não podem ser inferidas por múltiplas threads. São algoritmos não-bloqueantes para ambientes simultâneos. Esses algoritmos exploram instruções atômicas de baixo nível como um compare-and-swap (CAS) ou como mencionado read-modify-write, para garantir a segurança dos dados. É garantido que as threads não podem ler este valor em paralelo. As variáveis e classes atômicas parecem, para o exterior, uma única operação.
 
 Transformar uma variável em atômica não resolve o problema de visibilidade, então pode ser que seja mais útil combinar volatile variable e atomic classes. É o que foi usado para resolver o problema 2. Mas não é garantido que sempre que a variável atômica for criada, ela terá a referência da instanciação do objeto. Ela garante que os métodos serão executados de forma atômica, mas o fato de usar uma variável atômica sozinha não garante que threads diferentes serão capazes de passar a referência para essa variável de forma segura.
+
+
 
 ## Sincronização de threads
 
@@ -434,6 +464,8 @@ public class SynchronizationDemonstration {
 
 A sincronização resolve tanto o problema de visibilidade e de atomicidade. Existem algumas coisas que demandam atenção para a sincronização também: o que fica dentro e fora do bloco `syncronized(LOCK)` deve ser bem estudado, caso contrário comportamentos estranhos acabam surgindo; além disso, se uma thread ficar com o LOCK por muito tempo, então pode ser que nenhuma outra thread acabe pegando o LOCK e executando; o objeto que representa o talking stick deve ser o mesmo para as threads que precisam ser sincronizadas entre si. É uma abordagem bem difícil de ser aplicada corretamente e mesmo assim, pode levar a uma confusão quando múltiplas threads competem pelo mesmo objeto LOCK. Por isso, a sincronização é indicada apenas depois de ter considerado as outras opções. Por outro lado, se você tem um caso de uso simultâneo relativamente complexo e precisa de múltiplas threads cooperando e compartilhando alguns dados, então não tenha medo de usar totalmente a sincronização manual.
 
+
+
 ## Imutabilidade
 
 No caso do exemplo de Atomicidade, foi usado Atomic variable e variável volátil, para resolver tanto a questão da visibilidade quanto da atomicidade. Mas sempre que o Fragment é iniciado, imediatamente a variável é inicializada e ela  nunca muda. Ao invés de fazer com que ela seja volátil, ela pode ser **final**. De acotdo com a documentação do Java, variáveis finais são thread safe de forma que, uma vez transformadas em finais, quaisquer threads pegarão a referência correta dela.
@@ -445,6 +477,8 @@ private final AtomicInteger mCount = new AtomicInteger(0);
 Algumas pessoas dizem que é preciso deixar as variáveis finais para evitar mudanças acidentais. Parece fazer sentido, mas não é a razão principal para deixar as variáveis finais. A principal razão para usar variáveis finais é ter certeza que as diferentes threads que estão lendo terão o valor correto.
 
 > Neste contexto, uma boa regra a seguir é que qualquer membro de uma classe que esteja sendo inicializada na construção da classe deve ser **final**. Não só dentro de construtor, mas que receba valores de argumentos de construtores.
+
+
 
 ## 3 Acontece antes
 
@@ -469,6 +503,8 @@ As garantias do happens-before:
 4. Todas as ações em uma thread acontecem antes de qualquer outra thread retornar com sucesso de um `join()` naquela thread
 5. A inicialização padrão (blocos de inicialização, como init/ static initialization) de qualquer objeto acontece antes de qualquer outra ação (além de escritas padrões) de um programa
 
+
+
 ## Resumo dos desafios do multithreading
 
 Quando múltiplas threads acessam um estado compartilhado, o DEV precisa garantir:
@@ -487,6 +523,8 @@ Construtores atômicos:
 
 > O único jeito de garantir segurança nas threads é entender os desafios do multithreading em detalhes e minuciosamente revisar o código para problemas de multithread.
 
+
+
 # Pause threads
 
 Razões para pausar as threads:
@@ -496,6 +534,8 @@ Razões para pausar as threads:
 - Coordenar a execução entre múltiplas threads
 
 A maneira mais simples de pausar threads é implementar o "ocupado esperando" (busy-waiting). Um exemplo disso é a demo de Visibilidade, onde cada thread tem um loop while e umas condicionais que deixam o loop rodando enquanto não são atendidas. Esse busy-waiting consome muitos recursos, drenam bateria e podem estragar a responsividade do app. Por isso, **nunca use busy-waiting!!**
+
+
 
 ## Thread sleep
 
@@ -524,6 +564,8 @@ Interrupts são raramente usados no código, primeiro porque não são muito evi
 |         | O único jeito de acordar antes do timeout é usando interruption |
 
 O principal uso de `Thread.sleep()` é adicionar delays em fluxos individuais.
+
+
 
 ## Thread wait
 
@@ -569,15 +611,21 @@ System.out.println("Main: returns");
 
 Basicamente, tudo o que você faz com `join()`, pode ser feito com `wait()`. Mas caso precise escolher se usa um ou outro, definitivamente vá pela solução mais simples, que é o `join()`. O `join()` também atende bem ao happens-before, com a regra de que "todas as ações em uma thread acontecem antes de qualquer outra thread retornar com sucesso de um `join()` naquela thread".
 
+
+
 ## Blocked Thread
 
 É basicamente a mesma coisa que paused thread. BlockingQueue é um dos métodos que podem pausar a thread.
 
 > Não há riscos para a performance em usar diretamente Threads em sua aplicação. Ainda não é a escolha ideal por conta de outros fatores, mas em termos de performance criar e gerenciar as threads de forma crua e diretamente com o Java Thread Class não é um problema.
 
+
+
 # Clean Design
 
 Tem um design limpo no código de multi threads é de extrema importância
+
+
 
 # Links
 
@@ -585,4 +633,5 @@ Tem um design limpo no código de multi threads é de extrema importância
 - [Java atomic variables](https://www.baeldung.com/java-atomic-variables)
 - [Java Section 17 Documentation - Threads and Locks](https://docs.oracle.com/javase/specs/jls/se7/html/jls-17.html)
 - [Curso base deste conteúdo - Udemy](https://www.udemy.com/share/1029HQBkUddFpTTQ==/)
+- [Simultaneidade estruturada](https://medium.com/@elizarov/structured-concurrency-722d765aa952)
 

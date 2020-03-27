@@ -33,11 +33,11 @@ https://github.com/bufferapp/android-clean-architecture-boilerplate
 
 Gerencia os dados que podem ser fornecidos por API (Remote) ou Database (Cache). Quando a Domain pede algum dado, ela não sabe de onde eles são fornecidos, pois isso é responsabilidade do módulo Data.
 
-- API: endpoints para requisitar os dados do backend
-- Model: aqui ficam as entidades que vêm do Remote ou da Cache, ou seja, o dado puro, que só é utilizado no módulo Data
-- Mapper: mapeia os models para seguir as entidades exigidas pela Domain
-- Repository Impl: aqui implementamos a interface repository da domain e é onde vamos decidir de qual lugar vamos pegar os dados: se do Cache ou Remote
-- Data Source Interface: interface de comunicação que é implementada na Cache e/ou Remote para pegar os dados, tanto localmente quanto externamente.
+- **API**: endpoints para requisitar os dados do backend
+- **Model**: aqui ficam as entidades que vêm do Remote ou da Cache, ou seja, o dado puro, que só é utilizado no módulo Data
+- **Mapper**: mapeia os models para seguir as entidades exigidas pela Domain
+- **Repository Impl**: aqui implementamos a interface repository da domain e é onde vamos decidir de qual lugar vamos pegar os dados: se do Cache ou Remote
+- **Data Source Interface**: interface de comunicação que é implementada na Cache e/ou Remote para pegar os dados, tanto localmente quanto externamente.
 
 ## User Interface
 
@@ -98,43 +98,23 @@ https://proandroiddev.com/multiple-ways-of-defining-clean-architecture-layers-bb
 Ao invés de trabalhar com um app monolítico, é melhor usar a modularização, mesmo quando o app é "pequeno".
 
 - 1ª de 5 partes sobre modularização: https://jeroenmols.com/blog/2019/03/06/modularizationwhy/
-- 1ª de 3 partes sobre modularização (data/ presentation/ domain): https://medium.com/android-dev-br/modularização-android-parte-1-b69b509571c9
+- 1ª de 3 partes sobre modularização (data/ presentation/ domain): [https://medium.com/android-dev-br/modularização-android-parte-1-b69b509571c9](https://medium.com/android-dev-br/modularização-android-parte-1-b69b509571c9)
 
-## Estrutura de projeto
 
-O Clean Architecture não é um modelo de arquitetura para ser simplesmente copiado. Cada projeto e programador terá uma maneira que considera melhor de aplicar o Clean Architecture.
+
+## Flexibilização da arquitetura
+
+O Clean Architecture não é um modelo de arquitetura para ser simplesmente copiado. Cada projeto e programador terá uma maneira que considera melhor de aplicar o Clean Architecture. Abaixo é uma estrutura de clean architecture parecida com a primeira, mas veja que isso não é uma regra.
 
 ![clean-architecture-structure](clean-architecture-structure.PNG)
 
+
+
+Alguns exemplos de flexibilização são:
+
+- Ao invés de usar mappers, ter um módulo de **model** com interfaces dos modelos, o que facilita o uso em todas as camadas do projeto.
+- Abstrações com classes abstratas para desempenhar papéis como o do Base Observer, que traz métodos reutilizados, como `onSubscribe()`, `onSuccess()` e `onError()` em classes que retornam Single, Completable e Observable por exemplo (RxJava).
+- Os UseCases também podem ter classes abstratas de acordo com seus retornos, assim facilitam a implementação de Threads, RxJava ou Coroutines.
+- Uso de objetos como Helpers e outras classes como Utils.
+
 ***
-
-# Glossário
-
-- Contract: permite a comunicação de/ para o Presenter
-
-- UseCase: Contém as regras de negócio que serão aplicados nos dados que vêm de Data
-
-- Mapper: converte os dados de um model para que seja entendido pelo módulo de outra camada (.map)
-
-- Presenter:
-
-  	> A tarefa do Presenter é reembalar o OutputData no formato visível como o ViewModel, que é outro objeto Java antigo simples. O ViewModel contém principalmente Strings e sinalizadores que a View usa para exibir os dados. Enquanto o OutputData pode conter objetos Date, o Presenter carregará o ViewModel com as Strings correspondentes já formatadas corretamente para o usuário. O mesmo vale para objetos Currency ou quaisquer outros dados relacionados a negócios. Os nomes de botão e MenuItem são colocados no ViewModel, assim como os sinalizadores que informam ao modo de exibição se esses botões e itens de menu devem estar em cinza.
-    	>
-  	> -- Uncle Bob
-
-- Interactor: 
-
-- Controller: Pega o input do usuário, converte para o modelo requerido pelo UseCaseInteractor e passa para ele. O objeto aceito pelo controller é definido pelo controller. Ele NÃO pode depender de views ou tipos definidos pelo framework.
-
-
-# Links úteis
-
-https://proandroiddev.com/why-you-need-use-cases-interactors-142e8a6fe576
-
-https://proandroiddev.com/the-real-repository-pattern-in-android-efba8662b754
-
-https://proandroiddev.com/multiple-ways-of-defining-clean-architecture-layers-bbb70afa5d4a
-<!--stackedit_data:
-eyJoaXN0b3J5IjpbMTQ3MzQ1MjMxOSwxODUyNTQyMTExLDE1Nj
-U4MTI0OTNdfQ==
--->
