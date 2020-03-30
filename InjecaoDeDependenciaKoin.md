@@ -16,9 +16,13 @@ Nem sempre a injeção de dependência é a inversão de dependência, mas ela �
 
 O grande benefício é delegar a responsabilidade de inicialização de dependências, permitindo que membros do projeto apenas peçam o que precisam e a instância é fornecida automaticamente de acordo com o escopo necessário, como por exemplo, um *Singleton* ou *Factory* (instância sempre nova).
 
+
+
 ## Koin
 
 O Koin é uma lib externa que precisa ser adicionada como uma dependência. Documentação: https://insert-koin.io
+
+
 
 ### Módulos
 
@@ -57,6 +61,8 @@ val RegisterModule = module {
     )
 }
 ```
+
+
 
 ### Factory
 
@@ -103,6 +109,8 @@ class ShipperApplication : Application() {
     }
 ```
 
+
+
 ### Injeção de dependências por meio de delegated property
 
 Assim como na inicialização via lazy, ao usar o `by inject()`, a property é mantida imutável
@@ -110,6 +118,8 @@ Assim como na inicialização via lazy, ao usar o `by inject()`, a property é m
 ```
 private val adapter: ProductsListAdapter by inject()
 ```
+
+
 
 ### Injeção de dependências de objetos com mais complexidade
 
@@ -139,8 +149,6 @@ val techStoreModule = module {
 ```
 
 
-
-***
 
 # Links
 

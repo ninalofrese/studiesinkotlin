@@ -8,11 +8,11 @@ Executa o código da máquina tarefa por tarefa, iniciando outra após a primeir
 
 ### Sistema de multitasking cooperativo
 
-Executa tarefas individualmente e libera recursos da CPU com o "yielding" (render-se), permitindo que outra tarefa seja executada, com a intenção de ser retomada depois. Cada tarefa individual é responsável a render-se em algum ponto para liberar CPU para outras tarefas. A grande vantagem é que esse sistema dá a impressão que a execução é concorrente, em paralelo, por conta da velocidade do processamento da CPU. A desvantagem é que se uma tarefa não se comportar como deveria, todo o sistema pode travar.
+Executa tarefas individualmente e libera recursos da CPU com o "yielding" (render-se), permitindo que outra tarefa seja executada, com a intenção de ser retomada depois. Cada tarefa tem a responsabilidade de render-se (yield) em algum ponto para liberar CPU para outras tarefas. A grande vantagem é que esse sistema dá a impressão que a execução é simultânea, em paralelo, por conta da velocidade do processamento da CPU. A desvantagem é que se uma tarefa não se comportar como deveria, todo o sistema pode travar.
 
 ### Sistema de multitasking preemptivo
 
-Neste sistema o sistema operacional é quem gerencia os recursos da CPU alocando o tempo da CPU em diferentes tarefas, de acordo com o seu próprio algoritmo de agendamento. Basicamente, o sistema é quem diz quando cada tarefa rodará, podendo pausar uma tarefa para outra rodar. Esse processamento também ocorre de forma bem rápida, o que dá a impressão ao usuário que acontece paralelamente.
+Neste sistema, o sistema operacional é quem gerencia os recursos da CPU alocando o tempo da CPU em diferentes tarefas, de acordo com o seu próprio algoritmo de agendamento. Basicamente, o sistema é quem diz quando cada tarefa rodará, podendo pausar uma tarefa para outra rodar. Esse processamento também ocorre de forma bem rápida, o que dá a impressão ao usuário que acontece paralelamente.
 
 > Em computação, preemptividade é o ato de interromper temporariamente uma tarefa sendo executada por um sistema computacional, sem exigir sua cooperação, e com a intenção de retomar à tarefa posteriormente. Tais mudanças da tarefa executada são conhecidas como trocas de contexto.
 
@@ -20,7 +20,7 @@ A vantagem é que permite a execução simultânea de múltiplas tarefas e tamb�
 
 ### Sistema de multiprocessos
 
-São sistemas com mais de 1 CPU. Na prática, o processador possui várias CPUS internas, chamadas de cores.
+São sistemas com mais de 1 CPU. Na prática, o processador possui várias CPUs internas, chamadas de núcleos, ou em inglês, cores.
 
 ![Multiprocessing system](threads-multiprocessing-system.png)
 
@@ -41,13 +41,13 @@ Todos os sistemas que permitem paralelismo também permitem simultaneidade, mas 
 
 ### Processos
 
-Em um sistema que não é multitasking, só há uma tarefa que corresponde a um único programa em execução. No Android, que é multitasking, cada aplicação rodando recebe sua própria tarefa e essa tarefa é associada com um ambiente de execução isolado, chamado de *sandbox*. Juntos, eles formam um **processo**. Com isso, é possível afirmar que já que os processos são sandboxes no Android, uma aplicação não pode acessar o ambiente de uma outra aplicação (por motivos de confiabilidade e segurança).
+Em um sistema que não é multitasking, só há uma tarefa que corresponde a um único programa em execução. No Android, que é multitasking, cada aplicação rodando recebe sua própria tarefa e essa tarefa é associada com um ambiente de execução isolado, chamado de *sandbox*. Juntos, eles formam um **processo**. Com isso, é possível afirmar que os processos são sandboxes no Android, uma aplicação não pode acessar o ambiente de uma outra aplicação (por motivos de confiabilidade e segurança).
 
 
 
 ### Threads
 
-Os primeiros sistemas de multitasking permitiam que vários programas rodassem simultaneamente em processos separados, mas cada programa tinha apenas uma tarefa para si mesmo e que era associada com o processo do programa. Logo ficou evidente que um único programa poderia se beneficiar em ser fragmentado em múltiplas tarefas simultâneas. Em Android, cada processo pode ter uma ou mais tarefas. Isso são as threads.
+Os primeiros sistemas de multitasking permitiam que vários programas rodassem simultaneamente em processos separados, mas cada programa tinha apenas uma tarefa para si mesmo e que era associada com o processo deste programa. Logo ficou evidente que um único programa poderia se beneficiar em ser fragmentado em múltiplas tarefas simultâneas. Em Android, cada processo pode ter uma ou mais tarefas. Isso são as threads.
 
 Threads compartilham o ambiente de execução do processo pai, por isso ela pode se comunicar e trocar dados facilmente, é claro, com limites para cada processo.
 
@@ -67,8 +67,40 @@ Esta classe representa uma thread de execução (ou seja, uma tarefa) em process
 
 Há duas maneiras de instanciar novas threads:
 
-1. Criar uma classe que extende de Thread e personalizar o corpo do método sobreposto `run()`. E depois instanciar esta abstração. Esse método usa **herança**
+1. Criar uma classe que estende de Thread e personalizar o corpo do método sobreposto `run()`. E depois instanciar esta abstração. Esse método usa **herança**.
+
+```java
+public class MyThread extends Thread {
+	private final int mSeed;
+  
+  public MyThread(int seed) {
+    mSeed = seed;
+  }
+  
+  @Override
+  public void run() {
+    //perform some calculation
+  }
+}
+//Instanciação
+Thread thread = new MyThread(10);
+```
+
+
+
 2. Essa forma envolve o objeto `runnable` , que são basicamente containers para código, mas que não vão especificam como esse código será executado e em qual thread. Depois, instancia uma `Thread(runnable)` e passa o runnable dentro. Esse método usa **composição**, que acaba sendo melhor de ser utilizado.
+
+```java
+Runnable runnable = new Runnable() {
+	@Override
+	public void run(){
+		int seed = 10;
+		//perform some calculation
+	}
+};
+//Instanciação
+Thread thread = new Thread(runnable);
+```
 
 Instanciar esse objeto é diferente de começar uma nova thread. Para que ela de fato rode, ela precisa de um `thread.start();`
 
@@ -88,7 +120,7 @@ Para entender Garbage Collector, é preciso primeiro entender o que é a alocaç
 
 Por padrão, acitivities no Android são alcançáveis até que o Android invoque o método `onDestroy()`. É aí que o GC pode atuar, depois que as activities são destruídas.
 
-Mas e se caso você tenha dois objetos, um apontando para o outro? Se não existir outras referências que apontem para esses objetos, ambos são considerados fora de alcance (not reachable) e, portanto, ambos são elegíveis para serem limpados pelo Garbage Collector. Isso significa que o GC pode lidar com **circular references** envolvendo vários objetos.
+Mas e se caso você tenha dois objetos, um apontando para o outro? Se não existir outras referências que apontem para esses objetos, ambos são considerados fora de alcance (not reachable) e, portanto, ambos são elegíveis para serem limpos pelo Garbage Collector. Isso significa que o GC pode lidar com **circular references** envolvendo vários objetos.
 
 Todos os objetos no seu app devem ser coletados pelo GC eventualmente, exceto objetos que você explicitamente quer usar por todo o ciclo de vida da aplicação.
 
@@ -96,7 +128,7 @@ Todos os objetos no seu app devem ser coletados pelo GC eventualmente, exceto ob
 
 ## Memory Leaks
 
-É quando você tem um objeto que não será usado pela aplicação de novo, mas não pode ser limpa pela GC, e aí ele fica consumindo a memória para sempre. É o caso dos **roots**, objetos que são considerados alcançáveis, mas que não são limpos pelo GC. Basicamente, roots são objetos que guardam a memória de outros objetos.
+É quando você tem um objeto que não será usado pela aplicação de novo, mas não pode ser limpo pelo GC, e aí ele fica consumindo a memória para sempre. É o caso dos **roots**, objetos que são considerados alcançáveis, mas que não são limpos pelo GC. Basicamente, roots são objetos que guardam a memória de outros objetos.
 
 Alguns roots importantes em uma aplicação Android:
 
@@ -114,7 +146,7 @@ Do momento que uma thread tem o `start()` até o retorno do método `run()`, tod
 
 <img src="threads-inner.png" style="zoom:50%;" />
 
-É por isso que **todas as threads na aplicação devem ser encerradas no momento oportuno para evitar memory leaks**. E qual é o momento oportuno? Depende um pouco dos requerimentos do app, pode até definir que algumas threads devem ser live, que fiquem abertas enquanto a aplicação estiver aberta. Então isso acontece no melhor momento definido pelo desenvolvedor. Uma thread é considerada "morta" depois que o método `run()` retorna. Existem 4 maneiras de fazer isso:
+É por isso que **todas as threads na aplicação devem ser encerradas no momento oportuno para evitar memory leaks**. E qual é o momento oportuno? Depende um pouco dos requerimentos do app, pode até definir que algumas threads devem ser sempre ativas (live), que fiquem abertas enquanto a aplicação estiver aberta. Então isso acontece no melhor momento definido pelo desenvolvedor. Uma thread é considerada "morta" depois que o método `run()` retorna. Existem 4 maneiras de fazer isso:
 
 1. Usar o return do método `run()` depois de uma execução bem sucedida
 2. Usar o return do método `run()` ao responder a um erro interno, ou seja, quando algo deu errado e não foi bem sucedida
@@ -138,7 +170,7 @@ Exemplo da abordagem 4, interrompendo com OkHttp.
 5. Qualquer evento de interação do usuário (`onClick()`)  são executados na UI thread
 6. Qualquer mudança na interface do usuário deve ser realizada nesta thread
 
-É também chamada de **main thread**. Nem em todos os casos a main thread é a Ui thread, mas essa distinção é irrelevante para desenvolvedores Android e para todos os casos práticos UI thread e main thread são a mesma coisa.
+É também chamada de **main thread**. Nem em todos os casos a main thread é a UI thread, mas essa distinção é irrelevante para desenvolvedores Android e, na prática, UI thread e main thread são a mesma coisa.
 
 ### Responsividade da UI
 
@@ -146,7 +178,7 @@ Neste contexto, a responsividade da UI não tem nada a ver com tamanho de tela, 
 
 Requerimentos de responsividade da UI:
 
-- Aplicações Android devem renderizar 60 frames por segundo (FPS) > um novo frame deve ser renderizado a cada 16 milisegundos > Conclusão, seu código não deve executar na UI thread por mais que alguns milisegundos (depende de alguns fatores)
+- Aplicações Android devem renderizar 60 frames por segundo (FPS) > um novo frame deve ser renderizado a cada 16 milissegundos > Conclusão, seu código não deve executar na UI thread por mais que alguns milissegundos (depende de alguns fatores)
 
 Alertas que você está extrapolando a responsividade da UI thread:
 
@@ -154,7 +186,7 @@ Alertas que você está extrapolando a responsividade da UI thread:
 2. Notificações de frames skipped no Logcat
 3. Crash por conta do ANR (Android Not Responding)
 
-> Um dos pilares fundamentais de qualidade de apps Android é ter 0 frames skipped.
+> Um dos pilares fundamentais de qualidade de apps Android é ter 0 frames pulados (skipped).
 
 É por isso que **toda operação que consome tempo deve ser descarregada para background threads**.
 
@@ -162,7 +194,7 @@ Alertas que você está extrapolando a responsividade da UI thread:
 
 ### Conceitos de Handler e Looper
 
-[Handler](https://github.com/aosp-mirror/platform_frameworks_base/blob/master/core/java/android/os/Handler.java) é simplesmente envolver uma thread e essa thread pode ser chamada de [Looper](https://github.com/aosp-mirror/platform_frameworks_base/blob/master/core/java/android/os/Looper.java) thread, porque enquanto ela não for parada, vai executar. MainLooper é basicamente uma abstração da Ui thread, que basicamente faz um loop em runnables do Android ou criados por você. O Handler ou o Looper não são construtores apropriados para serem utilizados em aplicações. O único uso prático de Handler em uma aplicação é para o exemplo seguinte, que acessa a UI thread.
+[Handler](https://github.com/aosp-mirror/platform_frameworks_base/blob/master/core/java/android/os/Handler.java) é simplesmente envolver uma thread e essa thread pode ser chamada de [Looper](https://github.com/aosp-mirror/platform_frameworks_base/blob/master/core/java/android/os/Looper.java) thread, porque enquanto ela não for parada, vai executar. MainLooper é basicamente uma abstração da UI thread, que basicamente faz um loop em runnables do Android ou criados por você. O Handler ou o Looper não são construtores apropriados para serem utilizados em aplicações. O único uso prático de Handler em uma aplicação é para o exemplo seguinte, que acessa a UI thread.
 
 ```java
 private final Handler myUiHandler = new Handler(Looper.getMainLooper());
@@ -198,17 +230,17 @@ private void countIterations() {
 
 ## Background thread
 
-É basicamente qualquer outra thread que não a UI  thread. Uma regra importante é que qualquer coisa que lide com views, com UI, deve ser feita somente na UI thread, também pelo motivo é que ela cria as views, portanto, deve lidar com tudo que é pertinente a essas views.
+É basicamente qualquer outra thread que não a UI  thread. Uma regra importante é que qualquer coisa que lide com views, com UI, deve ser feita somente na UI thread, também pelo motivo é que ela cria as views, portanto, deve lidar com tudo que é pertinente a essas views. Todo o resto pode ser processado em background threads, que podem ser divididas dependendo da operação. Ex: *IO thread*, que lida com entrada e saída de dados, ou *computation*, que lida com cálculos, etc.
 
 
 
 # Desafios do multithreading
 
-Tomando novamente o exemplo de multitasking preemptivo, quando o PC vai executando tasks diferentes em uma mesma thread, ele inclui um contador que vai aumentando a cada task executada, então ele pausa e vai para outra thread, onde há um outro contador para as tasks que vão sendo executadas, até o momento em que ele volta para a thread 1, e continua a execução de onde parou.
+Tomando novamente o exemplo de multitasking preemptivo: vamos supor que o programa tem um contador que precisa aumentar quando uma tarefa for executada, e duas threads que farão isso. A primeira thread vai somando ao contador a cada tarefa, até que uma tarefa pausa e a segunda thread entra em ação, onde o contador vai contar as tarefas que estão sendo executadas. Depois, o sistema pausa essa tarefa, e volta para thread 1, continuando a execução de onde parou, e somando ao contador. Neste caso, ambas as threads estão acessando a mesma parte do estado do programa, a variável **contador**. Essa variável tem o seu estado compartilhado (shared state).
 
-> Se threads diferentes não acessam o mesmo estado, não é preciso tomar precauções especiais para garantir que tudo funcione. Se uma thread acessa a mesma parte de um estado do programa (shared state), é preciso garantir uma segurança para a thread (**thread-safety**).
+> Se threads diferentes não acessam o mesmo estado, não é preciso tomar precauções especiais para garantir que tudo funcione. Se uma thread acessa a mesma parte de um estado do programa (shared state), é preciso garantir uma segurança para as threads (**thread-safety**).
 
-Quando digo que é preciso garantir a thread-safety significa que o desenvolvedor precisa fazer isso, porque praticamente não há ferramentas que ajudem neste aspecto. Mas o que é thread safety? São três aspectos bem complexos considerados:
+Quando digo que é preciso garantir a thread-safety significa que o desenvolvedor precisa fazer isso, porque praticamente não há ferramentas que ajudem neste aspecto. Mas o que é thread safety? São três aspectos bem complexos, considerando esses 3 pontos principais:
 
 - Visibilidade
 - Atomicidade
@@ -284,7 +316,7 @@ private static int sCount = 0;
 
 ## 2 Atomicidade
 
-Quando duas (ou mais) threads alteram um valor simultaneamente, você quer basicamente que uma delas leia o valor atualizado pela outra e faça a sua modificação. O que na verdade acontece é que, às vezes, ambas as threads lêem o mesmo valor da variável e fazem a alteração, meio que estragando a intenção da operação, o que é o caso do exemplo abaixo. Não há como prever o quanto de dado é perdido nestes casos, mas isso depende do agendamento das threads pelo OS e quando o sistema disponibiliza as threads e a oportunidade delas rodarem.
+Quando duas (ou mais) threads alteram um valor simultaneamente, você quer basicamente que uma delas leia o valor atualizado pela outra e faça a sua modificação. O que na verdade acontece é que, às vezes, ambas as threads leem o mesmo valor da variável e fazem a alteração, meio que estragando a intenção da operação, o que é o caso do exemplo abaixo. Não há como prever o quanto de dado é perdido nestes casos, mas isso depende do agendamento das threads pelo OS e quando o sistema disponibiliza as threads e a oportunidade delas rodarem.
 
 ```java
 
@@ -389,7 +421,7 @@ Em ambos os casos, o valor existente em M é retornado. Isso combina 3 passos - 
 
 É uma keyword especialmente usada em variáveis e significa que qualquer valor que for nessa variável vai para a memória principal. Este valor nunca será cacheado. **Isso resolve o problema de visibilidade, mas não a atomicidade**, além de ser meio difícil de perceber que essa limitação foi resolvida, pois a variável volátil é só percebida quando declarada, não nas chamadas. 
 
-A questão da memória é um outro ponto que pode não ser tão usual em todas as situações, porque ela vai direto para a memória principal, ignorando todos os caches e atualizando esses dados sempre que carregados.
+A questão da memória é um outro ponto que pode não ser tão usual em todas as situações, porque ela vai direto para a memória principal, ignorando todos os caches e atualizando esses dados sempre que forem carregados.
 
 
 
@@ -468,7 +500,7 @@ A sincronização resolve tanto o problema de visibilidade e de atomicidade. Exi
 
 ## Imutabilidade
 
-No caso do exemplo de Atomicidade, foi usado Atomic variable e variável volátil, para resolver tanto a questão da visibilidade quanto da atomicidade. Mas sempre que o Fragment é iniciado, imediatamente a variável é inicializada e ela  nunca muda. Ao invés de fazer com que ela seja volátil, ela pode ser **final**. De acotdo com a documentação do Java, variáveis finais são thread safe de forma que, uma vez transformadas em finais, quaisquer threads pegarão a referência correta dela.
+No caso do exemplo de Atomicidade, foi usado Atomic variable e variável volátil, para resolver tanto a questão da visibilidade quanto da atomicidade. Mas sempre que o Fragment é iniciado, imediatamente a variável é inicializada e ela  nunca muda. Ao invés de fazer com que ela seja volátil, ela pode ser **final**. De acordo com a documentação do Java, variáveis finais são thread safe de forma que, uma vez transformadas em finais, quaisquer threads pegarão a referência correta dela.
 
 ```java
 private final AtomicInteger mCount = new AtomicInteger(0);
@@ -482,14 +514,14 @@ Algumas pessoas dizem que é preciso deixar as variáveis finais para evitar mud
 
 ## 3 Acontece antes
 
-> **Visibilidade não é um conceito fundamental em Java.** Ao invés disso, visibilidade é uma funcionalidade da relação de happens-before estabelecida (ou não) entre ações. O happens-before é um conceito mais low-level que visibilidade e é mais complexa de entender que a visibilidade.
+> **Visibilidade não é um conceito fundamental em Java.** Ao invés disso, visibilidade é uma funcionalidade da relação de *happens-before* estabelecida (ou não) entre ações. O *happens-before* é um conceito mais low-level e é mais complexo que a visibilidade.
 
-Duas ações podem ser ordenadas por uma relação do tipo happens-before. Se uma ação deve acontecer antes da outra, então a primeira é visível para a segunda e ordenada antes da segunda. [Fonte](https://docs.oracle.com/javase/specs/jls/se7/html/jls-17.html). Uma questão que surge baseada nos exemplos anteriores: mas a ordem já não é garantida pela ordem do código e da chamada? Bem, não. É possível que as chamadas possam fazer uma pré-ordenação, então não é garantido que o fluxo de uma thread é tão linear assim. É para isso que funciona a relação happens-before, que garante a ordem e visibilidade de duas ações.
+Duas ações podem ser ordenadas por uma relação do tipo happens-before. Se uma ação deve acontecer antes da outra, então a primeira é visível para a segunda e ordenada antes da segunda, [de acordo com a documentação](https://docs.oracle.com/javase/specs/jls/se7/html/jls-17.html). Uma questão que surge baseada nos exemplos anteriores: mas a ordem já não é garantida pela ordem do código e da chamada? Bem, não. É possível que as chamadas possam fazer uma pré-ordenação, então não é garantido que o fluxo de uma thread é tão linear assim. É para isso que funciona a relação *happens-before*, que garante a ordem e visibilidade de duas ações.
 
-Algumas regras do happens-before, imaginando a situação: se temos duas ações x e y, escrevemos `hb(x, y)` para indicar que o x acontece antes do y.
+Algumas regras do *happens-before*, imaginando a situação: se temos duas ações x e y, escrevemos `hb(x, y)` para indicar que o x acontece antes do y.
 
 1. Se x e y são ações **da mesma thread** e x vêm antes de y na ordem do programa, então `hb(x, y)`
-2. Existe uma distância do happens-before do final do construtor do objeto para o início do final deste objeto. Este ponto não é tão útil para desenvolvedores Android, pois envolve `finalizes`, que não é algo que usamos ou escrevemos.
+2. Existe uma distância do *happens-before* do final do construtor do objeto para o início do final deste objeto. Este ponto não é tão útil para desenvolvedores Android, pois envolve `finalizes`, que não é algo que usamos ou escrevemos.
 3. Se a ação x sincroniza (synchronized-with) com a ação seguinte y, então também temos `hb(x, y)`
 4. Se `hb(x, y)` e `hb(y, z)`, então `hb(x, z)`
 
@@ -545,7 +577,7 @@ Essa é a primeira forma legítima de pausar uma thread. A ideia do sleep é bem
 Thread.sleep(1000);
 ```
 
-É sempre usado com um try/catch, porque pode ser que, em casos raros, você queira encerrar o tempo de sleep antes que ele termine, então você pode tratar o comportamento quando isso acontece. Para fazer isso, você pode interromper a thread usando `interrupt()` , assim como é feito com o `start()` e, caso ela seja interrompida e lance o `InterruptedException`, realizará uma ação.
+É sempre usado com um *try/catch*, porque pode ser que, em casos raros, você queira encerrar o tempo de sleep antes que ele termine, então você pode tratar o comportamento quando isso acontece. Para fazer isso, você pode interromper a thread usando `interrupt()` , assim como é feito com o `start()` e, caso ela seja interrompida e lance o `InterruptedException`, realizará uma ação.
 
 ```java
 try {
@@ -556,7 +588,7 @@ try {
 }
 ```
 
-Interrupts são raramente usados no código, primeiro porque não são muito evidentes, o motivo de eles serem usados nunca são muito claros, sem contar o momento que ele interrompe não é muito preciso, você não consegue entender a intenção e o resultado da interrupção.
+Interrupts são raramente usados no código, primeiro porque não são muito evidentes para quem lê, o motivo de eles serem usados nunca são muito claros, sem contar o momento que ele interrompe não é muito preciso, você não consegue entender a intenção e o resultado da interrupção.
 
 | Pros    | Contras                                                      |
 | ------- | ------------------------------------------------------------ |
@@ -577,7 +609,7 @@ Em muitas situações, você vai querer pausar uma thread até que algum evento 
 | Pode ser usada por mais de uma thread                        |              |
 | Thread automaticamente libera o LOCK que aguardou (ou seja, quando a thread usa o wait, libera o LOCK) |              |
 
-O principal uso de `Thread.wait()` é para coordenar a execução de múltiplas threads. Existem métodos em classes especiais que podem fazer com que threads esperem quando chamadas, com implementações do wait(). Um exemplo é o BlockingQueue que tem um método `take()`, que usa a mesma abordagem que o wait tem.
+O principal uso de `Thread.wait()` é para coordenar a execução de múltiplas threads. Existem métodos em classes especiais que podem fazer com que threads esperem quando chamadas, com implementações do `wait()`. Um exemplo é o BlockingQueue que tem um método `take()`, que usa a mesma abordagem que o wait tem.
 
 ```java
 // wait usado em conjunto com uma AtomicBoolean flag
@@ -623,13 +655,99 @@ Basicamente, tudo o que você faz com `join()`, pode ser feito com `wait()`. Mas
 
 # Clean Design
 
-Tem um design limpo no código de multi threads é de extrema importância
+Tem um design limpo no código de multi threads é de extrema importância, talvez seja até mais importante do que o entendimento profundo das threads. Como o assunto é bem complicado, ele precisa ser bem escrito, porque quando der erro, é mais fácil de encontrar o problema e arrumar.
+
+Os exemplos anteriores mostram o multithreading sendo feito em fragments - e isso não é o ideal. Existe mais de uma maneira de deixar o código mais clean.
+
+Uma delas é levar a lógica e a troca de threads para um UseCase e ter um Observer (Listener) que pegue a informação atualizada no Fragment.
+
+Usando [clean architecture com MVVM](https://github.com/ninalofrese/studiesinkotlin/blob/master/CleanArchitecture.md), ficaria assim:
+
+- O UseCase guardaria essas regras de negócio, e faria essa troca de threads, para pegar as informações que precisam.
+- O ViewModel teria a lógica que controla a view, com um livedata que aguarda de forma reativa o resultado do UseCase.
+- A View observaria o livedata, reagindo conforme ele muda.
+
+
+
+# Thread Pool
+
+Thread Pools é basicamente uma fila de tarefas FIFO (First in, first out) com um grupo de worker threads. Os producers (UI threads) enviam tasks para a fila de tasks. Sempre que alguma worker thread da fila fica disponível, eles removem as tasks do começo da fila e começam a rodar elas. É basicamente um gerenciador de uma fila de threads e executam mais rápido do que threads manuais (`new Thread()`). Essa o número de threads sendo reutilizadas vai mudando conforme a execução, que geralmente vai sendo reduzido se a instância já foi criada e as threads já foram criadas uma vez.
+
+Uma das desvantagens da thread pool é que ela pode criar novas threads à vontade, e às vezes mais threads que o aparelho pode suportar, dando OutOfMemoryException. Uma solução é personalizar para um caso específico. Para isso, você precisa entender o número de cores para este pool, o tamanho máximo do pool, o tempo de que uma thread será mantida viva depois que terminar e uma fila de workers. Essa configuração é algo que você quase nunca vai precisar fazer, mas é uma tarefa muito difícil e um pouco como magia negra.
+
+```java
+// ambos dão OutOfMemoryException, pois não conseguem lidar com um grande volume de dados sozinha
+private final ExecutorService mThreadPool = Executors.newFixedThreadPool(1000);
+private final ExecutorService mThreadPool = Executors.newCachedThreadPool();
+
+// personalização (neste caso trata como uma fila síncrona)
+mThreadPoolExecutor = new ThreadPoolExecutor(
+  10,
+  Integer.MAX_VALUE,
+  10,
+  TimeUnit.SECONDS,
+  new SynchronousQueue<>(),
+  new ThreadFactory() {
+    @Override
+    public Thread newThread(Runnable r) {
+      Log.d("ThreadFactory",
+            String.format("size %s, active count %s, queue remaining %s",
+                          mThreadPoolExecutor.getPoolSize(),
+                          mThreadPoolExecutor.getActiveCount(),
+                          mThreadPoolExecutor.getQueue().remainingCapacity()
+                         )
+           );
+      return new Thread(r);
+    }
+  }
+);
+```
+
+Essa personalização pode ser usada como padrão por toda a aplicação usando Injeção de Dependências.
+
+
+
+Vantagens:
+
+- Aumento potencial de performance por conta do reuso de threads
+- Pode ser personalizada para casos de uso específicos e limitações
+- Centraliza múltiplas threads
+- Não precisa chamar `start()` em instâncias recém criadas de uma Thread
+
+
+
+Desvantagens:
+
+- É muito confuso  e traiçoeiro configurar corretamente
+- Configurar de forma errada pode levar a uma performance ruim, crashs ou hangs
+
+
+
+Algumas dicas:
+
+- Tente evitar a necessidade de configurar thread pools o quanto possível
+- Prefira frameworks com time-tested multithreading ou mesmo Threads puras
+- Use thread pools dedicados a casos de uso especiais
+- Faça vários reviews da configuração manual e faça muitos testes
+
+
+
+```java
+// configuração geralmente usada pelo Vasiliy, orientador
+new ThreadPoolExecutor(
+  3,
+  Integer.MAX_VALUE,
+  60,
+  TimeUnit.SECONDS,
+  new SynchronousQueue<>()
+)  
+```
 
 
 
 # Links
 
-- https://vimeo.com/49718712
+- [Simultaneidade não é paralelismo, Rob Pike](https://vimeo.com/49718712)
 - [Java atomic variables](https://www.baeldung.com/java-atomic-variables)
 - [Java Section 17 Documentation - Threads and Locks](https://docs.oracle.com/javase/specs/jls/se7/html/jls-17.html)
 - [Curso base deste conteúdo - Udemy](https://www.udemy.com/share/1029HQBkUddFpTTQ==/)
