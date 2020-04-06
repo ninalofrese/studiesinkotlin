@@ -14,6 +14,15 @@ Se está usando RxJava, pode integrar com o coroutines usando a [kotlin-coroutin
 
 
 
+| Vantagens                                                    | Desvantagens                                                 |
+| ------------------------------------------------------------ | ------------------------------------------------------------ |
+| Código limpo e sequencialmente estruturado                   | Modelo mental completamente diferente                        |
+| Tem potencialmente melhor performance em casos de simultaneidade em IO | API mais ou menos documentada                                |
+| Menos linhas de código                                       | Integração desafiadora com código bloqueante (blockingQueue é um exemplo) |
+|                                                              | Imaturidade                                                  |
+
+
+
 ## O padrão de callback
 
 Um dos padrões para executar tarefas longas são os callbacks. Usando callbacks, é possível iniciar long-running tasks em uma thread de background. Quando a tarefa terminar, o callback é chamado para informar o resultado na main thread.
@@ -88,7 +97,7 @@ suspend fun anotherFetch(): AnotherResult { ... }
 
 ## Scopes
 
-No Kotlin, todas as coroutines rodam dentro de um **CoroutineScope**. Um escopo controla o tempo de vida da coroutine durante o seu trabalho. Quando você cancela o trabalho de um escopo, isso cancela todas as coroutines iniciadas neste escopo. No Android, você pode usar um escopo para cancelar todos os coroutines quando, por exemplo, um usuário sai de uma Activity ou um Fragment. Escopos também permitem que você especifique um dispatcher. Um dispatcher controla qual thread vai rodar um coroutine.
+No Kotlin, todas as coroutines rodam dentro de um **CoroutineScope**. É como um ThreadPool, mas para coroutines. Um escopo controla o tempo de vida da coroutine durante o seu trabalho. Quando você cancela o trabalho de um escopo, isso cancela todas as coroutines iniciadas neste escopo. No Android, você pode usar um escopo para cancelar todos os coroutines quando, por exemplo, um usuário sai de uma Activity ou um Fragment. Escopos também permitem que você especifique um dispatcher. Um dispatcher controla qual thread vai rodar um coroutine.
 
 Para os coroutines iniciados pela UI, é correto na maioria das vezes iniciá-las no `Dispatchers.Main`, que é a main thread no Android. Uma coroutine iniciada nesta thread não vai bloquear a main thread enquanto estiver suspensa. Como um coroutine de um ViewModel quase sempre atualiza a UI na main thread, iniciar coroutines na main thread geralmente economiza a troca de threads desnecessárias. Um coroutine inidicado na main thread pode trocar de dispatchers a qualquer momento depois de iniciada. Por exemplo, pode usar um outro dispatcher para parsear um resultado JSON fora da main thread.
 
@@ -120,9 +129,42 @@ fun refreshTitle() {
     }
 ```
 
+Quando há um escopo filho criado dentro do pai, ele não é mais responsável pelo cancelamento deste, nem precisa esperar sua execução.
+
+
+
+> Scopes também podem receber um job. Então o `scope`  vai usar este Job como parent e desvincular de qualquer outro parent acima.
+>
+> ```kotlin
+> val scope = CoroutineScope(Dispatchers.Main + Job())
+> ```
+
+
+
 ### GlobalScope
 
-Existe também o **globalScope**. É melhor [evitar](https://medium.com/@elizarov/the-reason-to-avoid-globalscope-835337445abc).
+Existe também o **globalScope**, que é usado para lançar top-level coroutines que vão operar em todo o tempo de vida da aplicação e não são canceladas prematuramente.
+
+O código do aplicativo geralmente deve usar um CoroutineScope. Usar async ou launch em uma instância de GlobalScope é altamente desencorajado, porque geralmente você não quer coroutines que não sejam canceláveis. Com o GlobalScope, a responsabilidade do tempo de vida das coroutines criadas é totalmente do desenvolvedor. Isso é melhor explicado [aqui](https://medium.com/@elizarov/the-reason-to-avoid-globalscope-835337445abc).
+
+Se você quer que suas coroutines não sejam canceladas, como alternativa pode usar `async(Dispatchers.IO + NonCancellable)` ao invés de `GlobalScope.async(Dispatchers.IO)`.
+
+
+
+## Job e Deferred
+
+É uma tarefa em background, cancelável, com um ciclo de vida que culmina em sua conclusão. O `Job()` tem um ciclo de vida: novo, ativo, cancelado e completo.
+
+Os Jobs podem ser organizados em uma hierarquia pai-filho, onde o cancelamento do pai leva ao cancelamento imediato de todos os filhos. A falha ou cancelamento de um filho com uma exceção diferente de `CancellationException` cancela imediatamente seu pai. Por isso, um pai ou mãe pode cancelar seus próprios filhos  sem se cancelar.
+
+As instâncias mais básicas de Job são criadas com o método `launch()` ou com uma função factory de Job. Por padrão, uma falha de qualquer um dos filhos do Job leva a uma falha imediata dos pais e ao cancelamento do restante dos filhos.
+
+Em uma `SupervisorJob()` , a falha de uma filha não afeta as outras. Quando uma falha é notificada, o escopo não faz nada. O supervisor pode implementar um tratamento personalizado para as falhas das filhas:
+
+- A falha de uma filha que foi criada usando *launch* pode ser tratada via CoroutineExceptionHandler no contexto.
+- A falha de uma filha que foi criada usando *async* pode ser tratada via Deferred.await no resultado do valor deferido.
+
+Conceitualmente, a execução de um Job não retorna um valor de resultado. O ``Deferred` é um futuro cancelável sem poder ser bloqueado - ou seja, é um Job que tem um resultado. Um `Deferred` é um `Job`. Um Job no coroutineContext de um builder async representa a própria coroutine.
 
 
 
@@ -161,19 +203,137 @@ Chama o bloco suspenso especificado com o contexto que for designado, suspende a
 
 Deve ser utilizada quando precisar rodar duas ou mais chamadas de network em paralelo, mas precisa aguardar as respostas antes de computar o resultado. Ela bloqueia a thread pai. Um detalhe é que se você usa async, mas não espera um resultado, ele vai funcionar como o launch.
 
+O `async` trabalha em conjunto com o `await()` ou `awaitAll()`. No exemplo abaixo, tanto os producers como os consumers devem executar paralelamente.
+
+```kotlin
+suspend fun startBenchmark() : Result {
+
+  return withContext(Dispatchers.IO) {
+
+    numOfReceivedMessages.set(0)
+    numOfProducers.set(0)
+    numOfConsumers.set(0)
+
+    val startTimestamp = System.currentTimeMillis()
+
+    // producers init coroutine
+    val deferredProducers = async(Dispatchers.IO + NonCancellable) {
+      for (i in 0 until NUM_OF_MESSAGES) {
+        startNewProducer(i)
+      }
+    }
+
+    // consumers init coroutine
+    val deferredConsumers = async(Dispatchers.IO + NonCancellable) {
+      for (i in 0 until NUM_OF_MESSAGES) {
+        startNewConsumer()
+      }
+    }
+
+    awaitAll(deferredConsumers, deferredProducers)
+
+    Result(
+      System.currentTimeMillis() - startTimestamp,
+      numOfReceivedMessages.get()
+    )
+  }
+
+}
+
+private fun CoroutineScope.startNewProducer(index: Int) = launch(Dispatchers.IO) {
+  Log.d("Producer", "producer ${numOfProducers.incrementAndGet()} started; " +
+        "on thread ${Thread.currentThread().name}");
+  Thread.sleep(DefaultConfiguration.DEFAULT_PRODUCER_DELAY_MS.toLong())
+  blockingQueue.put(index)
+}
+
+private fun CoroutineScope.startNewConsumer() = launch(Dispatchers.IO) {
+  Log.d("Consumer", "consumer ${numOfConsumers.incrementAndGet()} started; " +
+        "on thread ${Thread.currentThread().name}");
+  val message = blockingQueue.take()
+  if (message != -1) {
+    numOfReceivedMessages.incrementAndGet()
+  }
+}
+
+```
 
 
-## Job
-
-Representa uma tarefa ou conjunto de tarefas em execução. A função `launch()` retorna um job. O job tem um ciclo de vida: novo, ativo, cancelado e completo.
 
 
 
 
 
-## Blocking calls
+## Context & Dispatchers
 
-É inevitável rodar tudo em funções suspensas, sem bloquear thread nenhuma. Um exemplo é este abaixo, que muda a thread para a IO, e chama alguns métodos que bloqueiam a thread, como o `execute()` e o `insertTitle`. O coroutine que chama isso, possivelmente rodando na Dispatchers.Main, vai ser suspensa até que o lambda do `withContext` for completado.
+O contexto da coroutines inclui um coroutine dispatcher que determina em qual thread ou threads a coroutine vai usar para sua execução. O dispatcher pode isolar uma execução de coroutine para uma thread específica, uma thread pool ou deixa rodar sem limitações. 
+
+
+
+**Dispatchers.Main**
+
+O dispatcher que usa a main thread para objetos de UI. Geralmente esse tipo de dispatcher roda em só uma thread.
+
+**Dispatchers.IO**
+
+É o dispatcher designado para ações de entrada e saída. O número de threads usados por esse dispatcher é limitado pelo valor da propriedade de sistema “`kotlinx.coroutines.io.parallelism`” ([IO_PARALLELISM_PROPERTY_NAME](https://kotlin.github.io/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/-i-o_-p-a-r-a-l-l-e-l-i-s-m_-p-r-o-p-e-r-t-y_-n-a-m-e.html)). O padrão é o limite de 64 threads ou o número de núcleos (o que for maior). Além disso, o número máximo configurável de threads é limitado pela propriedade do sistema `kotlinx.coroutines.scheduler.max.pool.size`. Se você precisa de um número maior de threads paralelas, deve usar um dispatcher personalizado apoiado pelo seu próprio thread pool. Esse dispatcher divide threads com o Default dispatcher, então usar `withContext(Dispatchers.IO){}` não leva a mudar de thread, normalmente a execução continua na mesma thread.
+
+```java
+// Mudado no onCreate() da Application para threads ilimitadas
+System.setProperty(IO_PARALLELISM_PROPERTY_NAME, String.valueOf(Integer.MAX_VALUE));
+```
+
+É bem absurdo existir essa limitação nas threads, por isso é sempre recomendável mudar este padrão. Isso deve ser feito com cuidado, porque pode gerar memory leaks. Depois de monitorar as  memory leaks pelo Profiler, 
+
+**Dispatchers.Default**
+
+É o dispatcher padrão usado pelos builders básicos, como launch, async, etc se não houver outro dispatcher especificado em seu contexto. É apoiado por um thread pool compartilhado na JVM. Por padrão, o número máximo de threads usadas por esse dispatcher é igual ao número de CPU cores, mas é pelo menos 2.
+
+**Dispatchers.Unconfined**
+
+Um dispatcher que não é limitado a uma thread específica. Ela executa a continuação inicial de uma coroutine no call-frame atual e permite que a coroutine seja retomada em qualquer thread que for usada pela suspeding function, sem exigir nenhuma política de thread específica. Coroutinas aninhadas lançadas neste dispatcher formam um loop de eventos para evitar stack overflows. Ele executa sequencialmente e na mesma thread.
+
+**Dispatcher personalizado**
+
+Criar um dispatcher personalizado é uma boa maneira de não ter a limitação no número de threads mas, considerando o desenvolvimento em equipes, pode ser que um desenvolvedor não saiba que você criou um dispatcher próprio e acabe alterando novamente para o `Dispatchers.IO()`, porque é uma dispatcher recomendada oficialmente pelo Google. Além disso, bibliotecas podem usar o `Dispatcher.IO()` também. Por isso, melhor mudar o limite padrão da `Dispatchers.IO()` na application (como indicado no código acima).
+
+```kotlin
+// Criando um dispatcher personalizado
+private val myDispatcher: CoroutineContext = Executors.newCachedThreadPool().asCoroutineDispatcher()
+```
+
+
+
+Dispatchers são CoroutineContext, mas as contexts têm mais coisas além do dispatcher. Quando se passa um context, ele se torna o pai daquela coroutine, ao invés do pai determinado na hierarquia do código. Cada coroutine builder é uma extensão do CoroutineScope e herda o **coroutineContext** para propagar automaticamente tanto os elementos de contexto e cancelamentos.
+
+
+
+```kotlin
+val deferredProducers = async(Dispatchers.IO + NonCancellable) {
+	for (i in 0 until NUM_OF_MESSAGES) {
+		startNewProducer(i)
+	}
+}
+```
+
+
+
+- [Documentação sobre context e dispatchers](https://kotlinlang.org/docs/reference/coroutines/coroutine-context-and-dispatchers.html)
+- [Desmistificando CoroutineContext](https://proandroiddev.com/demystifying-coroutinecontext-1ce5b68407ad)
+
+
+
+## RunBlocking
+
+`RunBlocking`  é uma construção de low-level que bloqueia a thread atual (ela não é uma suspend fun). Ela roda uma nova coroutine e bloqueia a thread atual de forma abrupta (interrompe mesmo) até que seja completada. Esse método não deve ser usado de uma coroutine, ele foi projetado para conectar o código bloqueante com bibliotecas que usam suspending functions, para ser usado em *main* functions e testes. 
+
+Ela transforma uma thread existente em um evento de loop e cria sua coroutine com um Dispatcher que publica coroutines retomadas na fila do loop de eventos. A thread que o chamou permanece dentro dela até que a coroutine seja completada.
+
+
+
+### Blocking calls
+
+É inevitável rodar tudo em funções suspensas, sem bloquear thread nenhuma. Um exemplo é este abaixo, que muda a thread para a IO, e chama alguns métodos que bloqueiam a thread, como o `execute()` e o `insertTitle`. O coroutine que chama isso, possivelmente rodando na Dispatchers.Main, vai ser suspenso até que o lambda do `withContext` for completado.
 
 ```kotlin
 suspend fun refreshTitle() {
@@ -768,6 +928,14 @@ Há como identificar as threads com logs, com uma solução mais prontinha do pr
 
 
 
+# Structured concurrency
+
+https://vorpus.org/blog/notes-on-structured-concurrency-or-go-statement-considered-harmful/
+
+[Simultaneidade estruturada](https://medium.com/@elizarov/structured-concurrency-722d765aa952)
+
+
+
 # Links
 
 - [Utilizando coroutines no Android](https://medium.com/android-dev-br/utilizando-kotlin-coroutines-no-android-c73fcda71e27)
@@ -779,3 +947,11 @@ Há como identificar as threads com logs, com uma solução mais prontinha do pr
 - [Coroutines com Lifecycle API e LiveData](https://android.jlelse.eu/coroutine-in-android-working-with-lifecycle-fc9c1a31e5f3)
 - [Palestra do Nelson Glauber sobre coroutines - contém um resumo de Exceptions](https://github.com/ninalofrese/studiesinkotlin/blob/master/coroutines-nglauber.pdf)
 - [Cancelamento e exception em coroutines](https://medium.com/androiddevelopers/coroutines-first-things-first-e6187bf3bb21)
+- [Trocando RxJava por Coroutines](https://proandroiddev.com/i-exchanged-rxjava-for-coroutines-in-my-android-application-why-you-probably-should-do-the-same-5526dfb38d0e)
+- [Documentação sobre context e dispatchers](https://kotlinlang.org/docs/reference/coroutines/coroutine-context-and-dispatchers.html)
+- [Desmistificando CoroutineContext](https://proandroiddev.com/demystifying-coroutinecontext-1ce5b68407ad)
+- [Exemplos coroutines considerando memory safe por conta de um blocking code](https://github.com/ninalofrese/android-multithreading-masterclass/tree/master/app/src/main/java/com/techyourchance/multithreading/demonstrations/designcoroutines)
+- [Exemplo com fatorial](https://github.com/ninalofrese/android-multithreading-masterclass/tree/master/app/src/main/java/com/techyourchance/multithreading/solutions/exercise10)
+- [Coroutines tips and tricks](https://proandroiddev.com/coroutines-snags-6bf6fb53a3d1)
+- [Como entender Kotlin coroutines](https://proandroiddev.com/how-to-make-sense-of-kotlin-coroutines-b666c7151b93)
+- [Coroutines concurrency](https://kotlinexpertise.com/kotlin-coroutines-concurrency/)

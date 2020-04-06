@@ -745,11 +745,24 @@ new ThreadPoolExecutor(
 
 
 
+# Frameworks
+
+
+
+- [AsyncTask](https://github.com/ninalofrese/studiesinkotlin/blob/master/AsyncTask.md)
+- [ThreadPoster](https://github.com/ninalofrese/studiesinkotlin/blob/master/ThreadPoster.md)
+- [RxJava](https://github.com/ninalofrese/studiesinkotlin/blob/master/RxJava.md)
+- [Coroutines](https://github.com/ninalofrese/studiesinkotlin/blob/master/Coroutines.md)
+
+
+
+
+
 # Links
 
 - [Simultaneidade não é paralelismo, Rob Pike](https://vimeo.com/49718712)
 - [Java atomic variables](https://www.baeldung.com/java-atomic-variables)
 - [Java Section 17 Documentation - Threads and Locks](https://docs.oracle.com/javase/specs/jls/se7/html/jls-17.html)
 - [Curso base deste conteúdo - Udemy](https://www.udemy.com/share/1029HQBkUddFpTTQ==/)
-- [Simultaneidade estruturada](https://medium.com/@elizarov/structured-concurrency-722d765aa952)
+- 
 
