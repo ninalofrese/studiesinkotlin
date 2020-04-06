@@ -920,14 +920,6 @@ class RefreshMainDataWorkTest {
 
 
 
-# Logs
-
-Há como identificar as threads com logs, com uma solução mais prontinha do próprio coroutines.
-
-
-
-
-
 # Structured concurrency
 
 https://vorpus.org/blog/notes-on-structured-concurrency-or-go-statement-considered-harmful/
