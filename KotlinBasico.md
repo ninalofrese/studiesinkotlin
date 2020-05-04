@@ -109,9 +109,9 @@ fun canAddFish(tankSize: Double, currentFish: List<Int>, fishSize: Int = 2, hasD
 
 
 
-### Função de extensão
+### Extension functions
 
-A função de extensão permite estender uma classe existente com novas funcionalidades. Antes do ponto especificamos da qual classe se estende e colocamos o nome da função. O `this`, neste caso referenciado dentro da função de extensão, está ligado à instância na qual é chamado. Funções de extensão são definidas fora da classe da qual estendem e, portanto, não têm acesso às variáveis privadas. Além disso, o uso mais comum é para estender classes que não foram criadas por nós, como de API ou do próprio Kotlin/ Android, e a questão da visibilidade torna mais raro a utilidade de funções de extensão para classes do projeto.
+As extension functions permitem estender uma classe existente com novas funcionalidades. Antes do ponto especificamos da qual classe se estende e colocamos o nome da função. O `this`, neste caso referenciado dentro da função de extensão, está ligado à instância na qual é chamado. Funções de extensão são definidas fora da classe da qual estendem e, portanto, não têm acesso às variáveis privadas. Além disso, o uso mais comum é para estender classes que não foram criadas por nós, como de API ou do próprio Kotlin/ Android, e a questão da visibilidade torna mais raro a utilidade de funções de extensão para classes do projeto.
 
 ```kotlin
 //in new file _LayoutInflater.kt
@@ -145,7 +145,7 @@ get() = color = "Green"
 
 > Dentro de uma função de extensão é chamado o **receiver object** como argumento. A função é determinada como uma extensão de String, então dentro da função String é chamado o **receiver type**. O termo não é receiver class porque extension functions não estendem de classes, mas sim de TIPOS.
 
-### Funções de ordem superior
+### Funções de ordem superior (high-order function)
 
 Essas funções são utilizadas em todo o lugar no Kotlin. São funções que têm funções como argumento e vivem abrigando um lambda.
 
@@ -171,24 +171,84 @@ fun myWith(name: String, block: String.() -> Unit){
 }
 ```
 
+Cada função de ordem superior cria um objeto para esta função, aloca esse objeto na memória, o que insere sobrecarga no tempo de execução.
+
+
+
 ### Inline
 
-Com a construção acima, toda vez que chamar `myWith()`, o Kotlin criará um novo objeto lambda, o que aumenta o consumo de memória e CPU. O inline é uma promessa de que sempre que a função for chamada, o compilador transformará o código-fonte para substituir o lambda pelas instruções dentro do lambda.
+Com a construção acima, toda vez que chamar `myWith()`, o Kotlin criará um novo objeto lambda, o que aumenta o consumo de memória e CPU. A inline function se comporta como um *promise*, então sempre que a função inline for chamada, o compilador transformará o código-fonte substituindo o lambda pelas instruções dentro do lambda.
 
 ```kotlin
 //É uma "promessa" de que sempre que myWith for chamado ele transformará o código fonte para criar um inline da função
+
 inline fun myWith(name: String, block: String.() -> Unit){
   name.block()
 }
 ```
 
-É importante notar que fazer inline de funções grandes aumenta o tamanho do codigo, então é bom aplicar inline em funções mais simples, como a do exemplo acima.
+A vantagem de usar inline functions é que elas reduzem a sobrecarga do tempo de execução drasticamente, já que a alocação adicional na memória heap é evitada. É importante notar que fazer inline de métodos que não possuem outra função como parâmetro não é vantajoso em termos de performance. Outro ponto é que as inline functions aumentam bastante o código gerado pelo compilador, por isso é melhor evitar usar em funções grandes. 
+
+> Em inline functions, não é possível usar uma função do parâmetro como parâmetro de outro método, o que gera o erro `Illegal usage of inline-parameter`. Caso a função tenha mais de um parâmetro, pode-se usar a palavra `noinline` para ignorar o efeito do inline apenas para esta função. Mas se a função tem apenas 1 função como parâmetro, melhor nem considerar usar o inline.
+
+Alguns casos de uso legais são:
+
+- Representar tipos de forma mais explícita
+
+```kotlin
+inline class Password(val value: String)
+inline class UserName(val value: String)
+
+fun auth(userName: UserName, password: Password) { println("authenticating $userName.")}
+
+fun main() {
+    auth(UserName("user1"), Password("12345"))
+    //does not compile due to type mismatch
+    auth(Password("12345"), UserName("user1"))
+}
+```
+
+- Tratamento de estado sem alocar espaço adicional
+
+```kotlin
+//Este caso mostra como monitorar a String original, mas sem alocar espaço extra
+
+inline class ParsableNumber(val original: String) {
+    val parsed: BigDecimal
+        get() = original.toBigDecimal().setScale(2, RoundingMode.HALF_UP)
+}
+
+fun getParsableNumber(number: String): ParsableNumber {
+    return ParsableNumber(number)
+}
+
+fun main() {
+    val parsableNumber = getParsableNumber("100.12212")
+    println(parsableNumber.parsed)
+    println(parsableNumber.original)
+}
+
+//getParsableNumber() retorna uma instância da inline class que fornece duas propriedades, original e parsed
+```
+
+- Reduzir o escopo de uma extension function
+
+```kotlin
+//ao invés de estar disponível para qualquer String, asJson() será executado em uma String wrapped em JsonString.
+
+inline class JsonString(val value: String)
+inline fun <reified T> JsonString.asJson() = jacksonObjectMapper().readValue<T>(this.value)
+```
+
+
 
 ### Operator
 
 A palavra `operator` indica um overloading de uma classe, marcando aquele método como o overloading de uma operação ou implementando uma nova convenção.
 
 https://kotlinlang.org/docs/reference/operator-overloading.html
+
+
 
 ## Classes de dados (data class)
 
@@ -774,6 +834,103 @@ fun refreshTitle() {
            _spinner.postValue(false)
        }
    })
+}
+```
+
+### Sealed classes
+
+Sealed classes são utilizadas quando queremos oferecer opções limitadas. Geralmente consideramos usar `enum` , mas pode ser que algumas restrições sejam demais para seu caso de uso, já que enums só podem ter uma única instância para cada valor e não podem ter mais informações sobre cada valor. Sealed classes combinam vantagens do enum com as classes abstratas: a liberdade de representação das classes abstratas com os tipos restritos dos enums. Um exemplo é para uma classe Result usada em um request, que deve passar dados em caso de sucesso e uma exceção em caso de erro:
+
+```kotlin
+sealed class Result<out T: Any> {
+}
+data class Success<out T: Any>(val data: T): Result<T>()
+sealed class Error(val exception: Exception): Result<Nothing>() {
+  class RecoverableError(exception: Exception): Error(exception)
+  class NonRecoverableError(exception: Exception): Error(exception)
+}
+object InProgress: Result<Nothing>
+
+fun handleResult(result: Result<Int>) {
+  
+   when(result){
+    is Result.Success -> {...}
+    is Result.Error.RecoverableError -> {...}
+    is Result.Error.NonRecoverableError -> {...}   
+  }
+  
+  // o when e o if, quando usados como expressão, são "monitorados" pedindo que a gente use todas as opções e dão erro de IDE indicando o que falta (usando o val action =)
+  val action = when(result){
+    is Result.Success -> {...}
+    is Result.Error -> {...}
+    Result.InProgress -> {...}
+  }
+  
+  //or 
+  
+  when(result){
+    is Result.Success -> {...}
+    is Result.Error.RecoverableError -> {...}
+    is Result.Error.NonRecoverableError -> {...}   
+    Result.InProgress -> {...}
+  }.exhaustive
+}
+
+//uma maneira de evitar colocar a expressão dentro de uma variável é criar uma extension function que vai garantir que a IDE gere branches para cada filho dentro da sealed class.
+
+val <T> T.exhaustive: T
+	get() = this
+
+```
+
+Assim como classes abstratas, sealed classes permitem que você represente hierarquias. As classes filhas podem ser de qualquer tipo, data class, object, uma classe normal ou mesmo outra sealed class. mas diferentemente de classes abstratas, as hierarquias de sealed classes devem ser feitas no mesmo arquivo, ou aninhada à classe pai. 
+
+Alguns casos de uso para sealed classes são para mostrar estados de sucesso, erro e loading em uma ViewModel e também na camada de repositório/ remoto, para monitorar um request da API. 
+
+Um outro caso menos usual é a construção de estado diferente de um mesmo Fragment/ Activity, quando há muitos parâmetros em um Bundle/ Intent, em que alguns são adicionados em alguns casos e outros não. Passar sealed classes devidamente nomeadas melhora bastante na legibilidade e é legal quando você está trabalhando em projetos herdados. Este [medium](https://medium.com/halcyon-mobile/simplify-your-android-code-by-delegating-to-sealed-classes-99304c509321) mostra como simplificar o código delegando para sealed classes e tem alguns exemplos parecidos com a situação apresentada acima.
+
+#### Exhaustive
+
+Uma outra vantagem das sealed classes é que tem como permitir que a IDE rastreie os filhos de uma sealed class, uma prática conhecida como exhaustive.
+
+O when e o if, quando usados como expressão, monitoram a sealed class e quando há uma diferença entre as classes filhas e as opções do when/ if, a IDE apresenta um erro em compilação e dá a possibilidade do autocomplete para resolver as diferenças. É o caso do exemplo abaixo:
+
+```kotlin
+fun handleResult(result: Result<Int>) {
+  val action = when(result){
+    is Result.Success -> {...}
+    is Result.Error -> {...}
+    Result.InProgress -> {...}
+  }
+```
+
+No Kotlin, podemos evitar colocar dentro de uma variável ao criar uma extension function conhecida como **exhaustive**, que mantém o monitoramento dos branches pela IDE:
+
+```kotlin
+fun handleResult(result: Result<Int>) { 
+  when(result){
+    is Result.Success -> {...}
+    is Result.Error.RecoverableError -> {...}
+    is Result.Error.NonRecoverableError -> {...}   
+    Result.InProgress -> {...}
+  }.exhaustive
+}
+
+val <T> T.exhaustive: T
+	get() = this
+```
+
+Essa versão acima tem algumas desvantagens: o autocomplete vai gerar uma opção **exhaustive** para qualquer coisa, já que extende de um tipo muito amplo e a performance da extension poderia ser melhorada com o uso de inline. Uma abordagem legal é essa abaixo:
+
+```kotlin
+Do exhaustive when (sealedClass) {
+  is SealedClass.First -> doSomething()
+  is SealedClass.Second -> doSomethingElse()
+}
+
+object Do {
+  //infix permite que a função seja chamada sem ponto ou brackets
+    inline infix fun<reified T> exhaustive(any: T?) = any
 }
 ```
 
