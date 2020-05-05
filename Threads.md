@@ -764,5 +764,6 @@ new ThreadPoolExecutor(
 - [Java atomic variables](https://www.baeldung.com/java-atomic-variables)
 - [Java Section 17 Documentation - Threads and Locks](https://docs.oracle.com/javase/specs/jls/se7/html/jls-17.html)
 - [Curso base deste conteúdo - Udemy](https://www.udemy.com/share/1029HQBkUddFpTTQ==/)
-- 
+
+  
 
