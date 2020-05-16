@@ -14,14 +14,9 @@ Esses dois métodos são chamados no método principal `setAsExpandable()`, que 
 
 Para usar essas extensions na TextView é só usar o `setAsExpandable()` passando o texto, a view do texto ou o grupo à qual ela pertence (que será escondido se o texto for vazio ou nulo) e o texto da label que vai preceder o texto.
 
-
-
-<script src="https://gist.github.com/ninalofrese/885d45f942e1d696e02b2435c6a65e98.js"></script>
-
 O meu uso nesse caso foi em um TextView na tela, por isso é necessário testar a performance em uma RecyclerView e fazer ajustes de acordo. 
 
-
-
+<script src="https://gist.github.com/ninalofrese/885d45f942e1d696e02b2435c6a65e98.js"></script>
 
 # Links
 
