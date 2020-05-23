@@ -293,6 +293,8 @@ https://kotlinlang.org/docs/reference/scope-functions.html
 
 https://medium.com/@fatihcoskun/kotlin-scoping-functions-apply-vs-with-let-also-run-816e4efb75f5
 
+https://github.com/MobileTipsters/android-daily-tips#131-understanding-let-apply-run-also-with
+
 | Function | Object reference | Return value   | Is extension function                                     |
 | :------- | :--------------- | :------------- | :-------------------------------------------------------- |
 | `let`    | `it`             | Lambda result  | Yes                                                       |
