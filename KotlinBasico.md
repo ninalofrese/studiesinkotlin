@@ -250,21 +250,6 @@ https://kotlinlang.org/docs/reference/operator-overloading.html
 
 
 
-## Classes de dados (data class)
-
-Classes de dados geram de forma simples construtores e suportam hashCodes e equals. A única coisa que não gera automaticamente é serialização. Com ela, os modelos ficam mais simples e concisos.
-
-```kotlin
-//all the code in model Note.kt
-data class Note(
-        var id: Int = -1,
-        var text: String? = null,
-        var isPinned: Boolean = false,
-        var createdAt: Date = Date(),
-        var updatedAt: Date? = null
-)
-```
-
 ## String interpolation
 
 Permite adicionar expressões dentro da string, com o `$` indicando uma variável
@@ -624,9 +609,15 @@ val random2 = {random()}
 
 ## Classes
 
-### Inicialização de variáveis
 
-#### Lateinit vs. Lazy
+
+### Propriedades
+
+
+
+#### Inicialização de variáveis
+
+##### Lateinit vs. Lazy
 
 | lateinit                                                     | lazy (delegação de propriedade)                              |
 | ------------------------------------------------------------ | ------------------------------------------------------------ |
@@ -647,7 +638,7 @@ private val recyclerView: RecyclerView by lazy {
 
 
 
-### Getters e Setters
+#### Getters e Setters
 
 Getters e setters são implícitos no Kotlin mas, quando precisa de um getter ou setter especial, é possível sobrescrever o padrão. Exemplo:
 
@@ -675,22 +666,49 @@ class Book (val isbn: Long) {
 
 
 
-### Visibilidade/ encapsulamento
+#### Igualdade - Equals
 
-#### Pacote
+O equals do Kotlin não é como o do Java. O operador `==` e o método `.equals()` fazem uma comparação de valores, chamada de *igualdade estrutural*. No operador `===` são comparadas as referências dos objetos, chamada de *igualdade referencial*. É esse tipo de comparação que é feita no Java com o operador `==`.
+
+Assim como no java, o `.equals()` pode ser sobrescrito para ter o comportamento alterado em determinada classe.
+
+```kotlin
+val d1 = Decorations("granite")
+val d2 = Decorations("slate")
+val d3 = Decorations("slate")
+
+println(d1.equals(d2)) //false
+println(d3.equals(d2)) //true
+```
+
+
+
+### Visibilidade
+
+**Pacote**
 
 - **public** - Padrão, o acesso é de qualquer lugar
+
 - **private** - Só dentro do arquivo
+
 - **internal** - No mesmo módulo
 
-#### Membros de Classe
+  
+
+**Membros de Classe**
 
 - **public**
 - **private** - Dentro da classe, subclasses não podem ver
 - **protected** - Dentro da classe, subclasses podem ver
 - **internal** - Módulo pode ver
 
-### Construtores
+
+
+### Herança
+
+
+
+#### Construtores
 
 A maioria das classes só especifica um construtor (primário). Apesar disso, é possível sobrescrever e ter mais de um construtor com o `constructor()`. Quando se cria um construtor secundário (constructor), ele precisa chamar o construtor primário com o `this`.
 
@@ -733,13 +751,36 @@ fun fishExample() {
 }
 ```
 
-### Herança
+#### Herança
 
 Por padrão, as classes e variáveis do Kotlin não são abertas para serem herdadas, é preciso autorizar explicitamente isso com a palavra `open`.
 
 
 
-### Object / Delegação de interface (Subclasse Singleton)
+#### Constantes
+
+`const val`é a maneira de criar constantes no Kotlin. A diferença entre `const val` e `val` é que o primeiro é sempre determinado no momento da compilação, enquanto com `val` , o valor pode ser determinado durante a execução do programa.
+
+- Para `val`, podemos atribuir um valor return de uma função, porque o valor será atribuído durante a execução
+- Para `const val` , como seu valor é setado no momento da compilação, não pode receber o valor de retorno de uma função. Só funciona em classes de alto nível e em classes declaradas com `object`, não com classes declaradas com `class`. Um exemplo é quando se precisa criar um arquivo que contenha somente constantes.
+
+O Kotlin não tem um conceito de constante para classes regulares. Para ter constantes dentro de uma classe, é preciso envolvê-las em um `companion object`. Companion objects são inicializados do construtor estático na classe que os contém, ou seja, eles são criados quando o objeto for criado. Ao invés de ter uma classe estática, o que evita a instanciação, se usa o companion object. **Companion object** permite acessar atributos e métodos sem precisar criar um objeto da classe.
+
+```kotlin
+class MyClass{
+	companion object{
+		const val CONSTANT3 = "test"
+	}
+}
+```
+
+
+
+### Delegação
+
+
+
+#### Object / Delegação de interface (Subclasse Singleton)
 
 **Objeto em Kotlin não é uma instância de uma classe específica**. O Kotlin permite declarar uma classe na qual há apenas uma instância usando a palavra-chave `object`ao invés de `class`. Isso cria uma classe e somente uma instância dela, que será criada na primeira compilação. Isso é como se implementa **singleton** no Kotlin.
 
@@ -780,7 +821,7 @@ object APIConstants {
 }
 ```
 
-#### Interoperabilidade Java
+##### Interoperabilidade Java
 
 No fim das contas, Kotlin converte um objeto em uma classe Java nos bastidores. Essa classe tem um campo privado `INSTANCE` que contém uma única instância (singleton) da classe.
 
@@ -806,20 +847,30 @@ Aplicando a notação `@JvmStatic`, o compilador transformou a função em está
 Singleton.myFunc()
 ```
 
-### Equals
 
-O equals do Kotlin não é como o do Java. Ele não referencia o endereço do objeto na memória, mas sim os valores.
+
+### Tipos de classes
+
+
+
+#### Data Class
+
+Classes de dados geram de forma simples construtores e suportam hashCodes e equals. A única coisa que não gera automaticamente é serialização. Com ela, os modelos ficam mais simples e concisos.
 
 ```kotlin
-val d1 = Decorations("granite")
-val d2 = Decorations("slate")
-val d3 = Decorations("slate")
-
-println(d1.equals(d2)) //false
-println(d3.equals(d2)) //true
+//all the code in model Note.kt
+data class Note(
+        var id: Int = -1,
+        var text: String? = null,
+        var isPinned: Boolean = false,
+        var createdAt: Date = Date(),
+        var updatedAt: Date? = null
+)
 ```
 
-### Anônimas
+
+
+#### Anônimas
 
 Classes anônimas no Kotlin são criadas usando `object: NomeDaClasse`, criando um novo objeto que implementará a classe.
 
@@ -839,7 +890,7 @@ fun refreshTitle() {
 }
 ```
 
-### Sealed classes
+#### Sealed classes
 
 Sealed classes são utilizadas quando queremos oferecer opções limitadas. Geralmente consideramos usar `enum` , mas pode ser que algumas restrições sejam demais para seu caso de uso, já que enums só podem ter uma única instância para cada valor e não podem ter mais informações sobre cada valor. Sealed classes combinam vantagens do enum com as classes abstratas: a liberdade de representação das classes abstratas com os tipos restritos dos enums. Um exemplo é para uma classe Result usada em um request, que deve passar dados em caso de sucesso e uma exceção em caso de erro:
 
@@ -891,7 +942,7 @@ Alguns casos de uso para sealed classes são para mostrar estados de sucesso, er
 
 Um outro caso menos usual é a construção de estado diferente de um mesmo Fragment/ Activity, quando há muitos parâmetros em um Bundle/ Intent, em que alguns são adicionados em alguns casos e outros não. Passar sealed classes devidamente nomeadas melhora bastante na legibilidade e é legal quando você está trabalhando em projetos herdados. Este [medium](https://medium.com/halcyon-mobile/simplify-your-android-code-by-delegating-to-sealed-classes-99304c509321) mostra como simplificar o código delegando para sealed classes e tem alguns exemplos parecidos com a situação apresentada acima.
 
-#### Exhaustive
+##### Exhaustive
 
 Uma outra vantagem das sealed classes é que tem como permitir que a IDE rastreie os filhos de uma sealed class, uma prática conhecida como exhaustive.
 
@@ -938,24 +989,15 @@ object Do {
 
 
 
-## Constantes
 
-`const val`é a maneira de criar constantes no Kotlin. A diferença entre `const val` e `val` é que o primeiro é sempre determinado no momento da compilação, enquanto com `val` , o valor pode ser determinado durante a execução do programa.
 
-- Para `val`, podemos atribuir um valor return de uma função, porque o valor será atribuído durante a execução
-- Para `const val` , como seu valor é setado no momento da compilação, não pode receber o valor de retorno de uma função. Só funciona em classes de alto nível e em classes declaradas com `object`, não com classes declaradas com `class`. Um exemplo é quando se precisa criar um arquivo que contenha somente constantes.
+### Generics
 
-O Kotlin não tem um conceito de constante para classes regulares. Para ter constantes dentro de uma classe, é preciso envolvê-las em um `companion object`. Companion objects são inicializados do construtor estático na classe que os contém, ou seja, eles são criados quando o objeto for criado. Ao invés de ter uma classe estática, o que evita a instanciação, se usa o companion object. **Companion object** permite acessar atributos e métodos sem precisar criar um objeto da classe.
 
-```kotlin
-class MyClass{
-	companion object{
-		const val CONSTANT3 = "test"
-	}
-}
-```
 
-## Classes genéricas
+
+
+#### Classes genéricas
 
 Ao invés de fazer várias classes iguais para cada tipo de dado, são usadas classes genéricas, que podem se adequar a vários tipos de dados. É comumente representada pelo `<T>`, mas pode ser qualquer nome ou letra dentro de <>.
 
@@ -969,7 +1011,7 @@ class Aquarium<T : WaterSupply>(val waterSupply: T){
 }
 ```
 
-### In e out genéricas
+#### In e out genéricas
 
 Quando se usa um tipo aberto é bem possivel que encontre problemas de compatibilidade de dados que nem sempre são variantes. Por isso, para evitar esse erro de `ClassCastException` em métodos no corpo da função ou da classe, se usa **in** ou **out**
 
@@ -997,7 +1039,7 @@ interface Cleaner<in T: WaterSupply>{
 }
 ```
 
-## Funções genéricas
+#### Funções genéricas
 
 ```kotlin
 fun <T: WaterSupply> isWaterClean(aquarium: Aquarium<T>){
@@ -1014,6 +1056,8 @@ aquarium.hasWaterSupplyOfType<TapWater>() //true
 ```
 
 https://kotlinlang.org/docs/reference/generics.html#generics
+
+
 
 ## SAM (Método abstrato único)
 
