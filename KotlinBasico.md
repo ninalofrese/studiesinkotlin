@@ -636,6 +636,8 @@ private val recyclerView: RecyclerView by lazy {
 }
 ```
 
+https://medium.com/@kiitvishal89/kotlin-lazy-know-them-inside-out-94ab4de1676d
+
 
 
 #### Getters e Setters
