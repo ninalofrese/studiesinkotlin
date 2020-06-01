@@ -1,8 +1,108 @@
 # Testes unitários
 
-> Unit tests devem testar a classe ou método que você está interessado. Isso é chamado de testes em isolamento, onde você claramente isola a sua "unidade" e só testa o código que é parte desta unidade.
+> Testes unitários devem testar a menor parte de um código isoladamente. A menor parte geralmente é um método e vários testes são necessários para diferentes casos de teste.
 
-![img](https://codelabs.developers.google.com/codelabs/advanced-android-kotlin-training-testing-test-doubles/img/ed5e6485d179c1b9.png)
+Os testes unitários são a base dos testes de toda a parte lógica do sistema Android, seguidos pelos testes de integração(UI), testes end-to-end e testes manuais.
+
+![img](testesunitarios-piramide.jpeg)
+
+
+
+### Termos utilizados (ou Glossário)
+
+- *System under test* (SUT) é um termo para "o que está sendo testado". No Android, cada arquivo de teste é vinculado a uma classe, portanto, o SUT é a classe a ser testada. O SUT não deve ser substituído por um test double (mocks ou stubs).
+
+
+
+### Como fazer testes unitários?
+
+O objetivo dos testes unitários é encontrar bugs nas classes de lógica e dados. Na hora de escrever os testes, é melhor não ver a implementação do código, para não ter um viés e acabar só escrevendo testes "perfeitos". Lembre-se, o objetivo é encontrar bugs, então é bom explorar as possibilidades de teste de cada método para encontrar problemas neste momento e poder fazer as correções.
+
+1. Crie um arquivo de teste da classe que quer testar.
+2. Faça o setup do *system under test (SUT)* no @Before.
+3. Escreva as possibilidades de parâmetros com testes e identifique quais requerimentos não estão sendo cobertos.
+4. Leia o retorno de testes que não passaram e tente formular uma hipótese.
+5. Faça a correção no código de produção.
+6. Confira se todos os testes passaram.
+
+
+
+### Como nomear testes unitários
+
+Assim como em qualquer código, o nome dos testes unitários é muito importante. Neles, as regras normais de nomear métodos não se aplicam, mas ter atenção ao nomear pode ser decisivo na investigação e conserto de um testes que falhou.
+
+Uma sugestão de padrão pode ser bem interessante para melhorar a leitura do teste:
+
+`<unidadeDeTeste>_<estadoSobTeste>_<comportamentoEsperado>`
+
+- Unidade de teste: geralmente é o nome do método a ser testado
+
+- Estado sob teste/ casos de teste: Qual é o estado que está sendo testado? 
+- Comportamento esperado: Qual é o comportamento esperado?
+
+
+
+Exemplo:
+
+```java
+//No método reverse, quando for uma string vazia, retornar uma string vazia
+@Test
+public void reverse_emptyString_emptyStringReturned() throws Exception {
+  String result = SUT.reverse("");
+  assertThat(result, is(""));
+}
+
+//No método reverse, quando for um único caractere, retornar o mesmo caractere
+@Test
+public void reverse_singleCharacter_sameStringReturned() throws Exception {
+  String result = SUT.reverse("a");
+  assertThat(result, is("a"));
+}
+
+//No método reverse, quando for uma string maior, retornar a string invertida
+@Test
+public void reverse_longString_reversedStringReturned() throws Exception {
+  String result = SUT.reverse("Vasiliy Zukanov");
+  assertThat(result, is("vonakuZ yilisaV"));
+}
+```
+
+
+
+### Como escolher os casos de teste
+
+É muito fácil se perder ao olhar para um método e pensar: o que eu vou testar? Um bom exercício para criar testes é evitar olhar ao corpo do método e escrever o teste às cegas, assim você consegue visualizar as possibilidades de teste sem ser tendencioso.
+
+Um bom primeiro passo é pegar a classe que vai testar e criar o arquivo de teste. Depois, tente anotar nos comentários as combinações possíveis de parâmetros que aquele método pode receber. Agrupe as combinações similares e reduza para os casos que representam melhor cada grupo. Escreva testes para cada um e, depois, rode o teste com **coverage**, é bem bacana ver o quanto o teste está rodando no código e quantas linhas cobre. Nesse momento dá para identificar quais casos o teste não está cobrindo. É bom lembrar que, mesmo que o teste esteja cobrindo 100% não é uma garantia que todos os estados possíveis estão sendo testados. Procure pensar em condições que fiquem no limite de diferentes grupos de entrada.
+
+Em resumo:
+
+- Identificar diferentes combinações de input, que correspondem a diferentes estados - anotar os comentários no arquivo de testes ajuda
+- Escrever um caso de teste para um representante de cada grupo.
+- 100% de *line coverage* é necessário, mas não o suficiente para garantir a cobertura de todas as funcionalidades possíveis para aquele caso de teste.
+- Escreva casos de teste para condições que estão no limite entre diferentes grupos de entrada.
+
+Exemplo:
+
+```java
+@Test
+public void isOverlap_interval1BeforeAdjacentInterval2_falseReturned() throws Exception {
+Interval interval1 = new Interval(-1, 5);
+Interval interval2 = new Interval(5, 8);
+boolean result = SUT.isOverlap(interval1, interval2);
+assertThat(result, is(false));
+}
+
+@Test
+public void isOverlap_interval1AfterAdjacentInterval2_falseReturned() throws Exception {
+Interval interval1 = new Interval(-1, 5);
+Interval interval2 = new Interval(-3, -1);
+boolean result = SUT.isOverlap(interval1, interval2);
+assertThat(result, is(false));
+}
+```
+
+
 
 ## Estrutura de um teste unitário
 
@@ -250,7 +350,7 @@ class DefaultTasksRepositoryTest {
 >
 > Quando estiver em classes de testes, ou seja classes com métodos @Test, use **runBlockingTests** para pegar o comportamento característico.
 
-## Testes de integração
+# Testes de integração
 
 Testes de integração testam a interação de várias classes para ter certeza que elas se comportam bem quando são usadas juntas. Estes testes podem ser rodados localmente (na pasta test) ou como testes instrumentados (androidTest).
 
@@ -259,7 +359,7 @@ Testes de integração testam a interação de várias classes para ter certeza 
 
 ### Service Locator
 
-No exemplo do Codelabs, é provido um repositório fake para o fragmento usando um ServiceLocator. Isso permite que escreva os testes para o fragment e o VM.
+No exemplo do Codelabs, é fornecido um repositório fake para o fragmento usando um ServiceLocator. Isso permite que escreva os testes para o fragment e o VM.
 
 Não pode usar injeção de dependência por construtor aqui, como foi feito antes, porque injeção de dependência por construtor requer que você **construa** a classe. Fragmentos e activities são exemplos de classes que você não constrói e geralmente não tem acesso ao construtor delas.
 
