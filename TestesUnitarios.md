@@ -6,11 +6,9 @@ Os testes unitários são a base dos testes de toda a parte lógica do sistema A
 
 ![img](testesunitarios-piramide.jpeg)
 
+Antes de começar:
 
-
-### Termos utilizados (ou Glossário)
-
-- *System under test* (SUT) é um termo para "o que está sendo testado". No Android, cada arquivo de teste é vinculado a uma classe, portanto, o SUT é a classe a ser testada. O SUT não deve ser substituído por um test double (mocks ou stubs).
+> *System under test* (SUT) é um termo para "o que está sendo testado". No Android, cada arquivo de teste é vinculado a uma classe, portanto, o SUT é a classe a ser testada. O SUT não deve ser substituído por um test double (mocks ou stubs).
 
 
 
@@ -20,7 +18,7 @@ O objetivo dos testes unitários é encontrar bugs nas classes de lógica e dado
 
 1. Crie um arquivo de teste da classe que quer testar.
 2. Faça o setup do *system under test (SUT)* no @Before.
-3. Escreva as possibilidades de parâmetros com testes e identifique quais requerimentos não estão sendo cobertos.
+3. Pense sobre as situações possíveis e identifique quais requerimentos podem ser cobertos pela unidade que vai testar. Faça uma lista como comentários e depois, escreva cada teste.
 4. Leia o retorno de testes que não passaram e tente formular uma hipótese.
 5. Faça a correção no código de produção.
 6. Confira se todos os testes passaram.
@@ -104,11 +102,29 @@ assertThat(result, is(false));
 
 
 
+### O que faz um código ser testável no Android?
+
+- Métodos curtos e com uma só responsabilidade
+
+- Evita o uso de métodos estáticos e Singletons
+
+
+
 ## Estrutura de um teste unitário
+
+
+
+
 
 - **Given/ Arrange** - atribui valores fakes que serão usados no teste, as entradas
 - **When/ Act** - executa o método a ser testado
 - **Then/ Assert** - compara o resultado do teste com um valor esperado
+
+
+
+> Os valores "fixos", como strings, são melhores se usados como constantes do que diretamente.
+
+
 
 ### @RunWith
 
@@ -132,7 +148,7 @@ var instantExecutorRule = InstantTaskExecutorRule()
 
 ### @Before
 
-Quando algo precisa ser executado antes dos testes e é reutilizável, usa-se a anotação @Before. É muito utilizada para inicializar uma variável que será aproveitada em mais de um teste.
+Quando algo precisa ser executado antes dos testes e é reutilizável, usa-se a anotação @Before. É muito utilizada para inicializar o SUT ou uma variável que será aproveitada em mais de um teste.
 
 ```kotlin
 private lateinit var tasksViewModel: TasksViewModel
@@ -216,20 +232,70 @@ Testar repositórios é bem difícil por vários motivos, mas costuma confundir 
 
 
 
-### Usar test doubles para criar uma versão da classe para teste
+## Test doubles
+
+Dentro do paradigma de orientação a objetos, testar classes que possuem dependências externas é mais complicado do que simplesmente instanciar o SUT. Um exemplo é uma classe que possui construtores compostos por outros objetos, onde usar as implementações reais não é adequado, porque deixa os testes lentos e não confiáveis. Para essas dependências externas se usa "dublês de teste". 
 
 Não se deve usar o código real para chamar o remote ou o database, usa-se "dublês".
 
-| **Fake**  | A test double that has a "working" implementation of the class, but it's implemented in a way that makes it good for tests but unsuitable for production. |
-| --------- | ------------------------------------------------------------ |
-| **Mock**  | A test double that tracks which of its methods were called. It then passes or fails a test depending on whether it's methods were called correctly. |
-| **Stub**  | A test double that includes no logic and only returns what you program it to return. A `StubTaskRepository` could be programmed to return certain combinations of tasks from `getTasks` for example. |
-| **Dummy** | A test double that is passed around but not used, such as if you just need to provide it as a parameter. If you had a `NoOpTaskRepository`, it would just implement the `TaskRepository` with **no** code in any of the methods. |
-| **Spy**   | A test double which also keeps tracks of some additional information; for example, if you made a `SpyTaskRepository`, it might keep track of the number of times the `addTask` method was called. |
+| Test double | Conceito                                                     |
+| ----------- | ------------------------------------------------------------ |
+| **Fake**    | É uma substituição funcional de uma unidade real e é a implementação interna é otimizada para testes, diferentemente de uma unidade real. <br />Exemplo: uma unidade real pode persistir dados no database enquanto o fake guarda na memória. |
+| **Mock**    | Grava as interações com si mesmo durante o teste e garante que use as dependências apropriadamente. <br />Exemplo: suponha que queira garantir que um método específico de uma unidade externa seja chamado pelo SUT. Para testar esse cenário, você substitui a unidade externa com o mock que conta as invocações dos métodos e verifica que ele foi chamado durante o teste. |
+| **Stub**    | Retorna um dado pré-definido, então não possui lógica envolvida.<br />Exemplo: se uma unidade real executa requests no network e retorna dados do servidor, pode ser substituído com um stub que pode ser programado para retornar os dados necessários para teste. |
+| **Dummy**   | A test double that is passed around but not used, such as if you just need to provide it as a parameter. If you had a `NoOpTaskRepository`, it would just implement the `TaskRepository` with **no** code in any of the methods. |
+| **Spy**     | A test double which also keeps tracks of some additional information; for example, if you made a `SpyTaskRepository`, it might keep track of the number of times the `addTask` method was called. |
 
-Os tipos mais utilizados são Fake e Mock.
+Os tipos mais utilizados são Fake e Mock. E a terminologia mais usada para *test doubles* em geral é "mock", mesmo quando se usa outros tipos de *test double*.
 
-#### FakeDataSource
+
+
+### Static methods
+
+Dependências estáticas não podem ser substituídas por *test doubles* porque não possuem relação com nenhum objeto. Além disso, não são visíveis no nível de API pública, então são mais difíceis de deduzir o comportamento, o que causa erros nos testes às cegas. Por isso, é importante evitar chamar métodos estáticos funcionais, ou o código vira um grande emaranhado de coisas não testáveis com interdependências escondidas.
+
+
+
+```java
+// código do teste que falha por chamar um método estático
+@Test
+public void isValidUsername_validUsername_trueReturned() throws Exception {
+	boolean result = SUT.isValidUsername("validUsername");
+  assertThat(result, is(true));
+}
+
+// código chamado pelo teste
+public boolean isValidUsername(String username) {
+  return ServerUsernameValidator.isValidUsername(username);
+}
+
+// que referencia a:
+public class ServerUsernameValidator {
+    public static boolean isValidUsername(String username) {
+        // this sleep mimics network request that checks whether username is free, but fails due to
+        // absence of network connection
+        try {
+            Thread.sleep(1000);
+            throw new RuntimeException("no network connection");
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+}
+```
+
+
+
+### Singletons
+
+Singleton é o maior pesadelo dos testes. Por serem basicamente uma combinação de métodos e estados estáticos, quando o JUnit roda os testes, cria uma instância completamente nova na classe de testes para rodar cada método de teste. Consequentemente, cada método de teste vai começar com um estado em branco da classe de teste. O problema é que o estado estático não é vinculado à classe de teste. Um exemplo é quando se tem dois testes que dependem de um singleton e que rodam se executados isoladamente, mas quando se testa a classe toda, ele falha no segundo teste. Isso significa que o estado estático não pode ser compartilhado entre testes.
+
+Isso não é o motivo mais grave para os singletons serem responsáveis por falhar os testes. Eles são os principais causadores de **flaky tests**, que geram erros aleatoriamente e cujo erro é bem difícil de debugar e reproduzir. O conselho é não usar singletons se quer que o código seja testável.
+
+
+
+### FakeDataSource
 
 No exemplo, criamos um FakeDataSource que vai ser muito parecido com o repositório, que vai simular as dependências **LocalDataSource** e **RemoteDataSource**. 
 
@@ -243,7 +309,7 @@ class FakeDataSource(
 
 
 
-#### FakeRepository
+### FakeRepository
 
 Para manter o princípio do isolamento, é necessário criar classes fakes para atingir esse objetivo. Para o exemplo do Codelabs, somente o código do ViewModel precisa ser testado, não o do database, network ou do repositório. Assim como feito no repositório, a fonte de dados precisa aplicar a injeção de dependências para que possa ser usada nos testes.
 
