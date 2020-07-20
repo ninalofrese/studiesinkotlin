@@ -151,15 +151,12 @@ Quando um dispositivo client recebe uma mensagem que inclui tanto notificação 
 
 | Estado do app | Notificação         | Dados               | Ambos                                                        |
 | :------------ | :------------------ | :------------------ | :----------------------------------------------------------- |
-| Foreground    | `onMessageReceived` | `onMessageReceived` | `onMessageReceived`                                          |
-| Background    | Bandeja do sistema  | `onMessageReceived` | Notificação: bandeja do sistema <br />Dados: nos extras do intent. |
+| Foreground    | `onMessageReceived()` | `onMessageReceived()` | `onMessageReceived()`                                          |
+| Background    | Bandeja do sistema  | `onMessageReceived()` | Notificação: bandeja do sistema <br />Dados: nos extras do intent. |
 
 - Se estiver no background, se a mensagem tiver notificação, ela vai mostrar na área de notificações. Se a mensagem também tiver um data payload, o data payload vai ser lidado pelo bundle da activity quando o usuário tocar na notificação. É possível adicionar o destino com a tag `<action android:name="abc" />` dentro do `<intent-filter>` do AndroidManifest, mas talvez isso possa ser tratado como um argument no Navigation Component também. 
-- Se o app estiver em foreground, tudo que vier deve ser tratado dentro do método `onMessageReceived()`, a notificação não aparece automaticamente. O app precisa decidir como lidar tanto com a notificação quanto o data payload no método `onMessageReceived() .
-
-O comportamento padrão de uma notificação é aparecer se o app está em background. Mas se o app estiver sendo executado em foreground, a notificação não é mostrada automaticamente, ao invés disso, o app decide o que fazer com a mensagem. Neste caso, o método `onMessageReceived()` vai ser ativado automaticamente com a mensagem. É nesse método que o app pode lidar silenciosamente com a notificação/ data payloads ou disparar uma notificação.
-
-
+- Se o app estiver em foreground, tudo que vier deve ser tratado dentro do método `onMessageReceived()`, a notificação não aparece automaticamente. O app precisa decidir como lidar tanto com a notificação quanto o data payload no método `onMessageReceived()`.
+- Se o app está em background e a notificação precisa ser lidada pela bandeja do sistema, ele vai mostrar a notificação com as configurações padrões do Android junto com as personalizações feitas no manifest. Essa mesma notificação, em foreground, só vai aparecer se o app decidir mostrar no método `onMessageReceived()`. Essa funcionalidade faz com que o app possa lidar silenciosamente com a notificação/ data ou disparar uma notificação.ação.
 
 ***
 
